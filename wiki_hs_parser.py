@@ -180,6 +180,103 @@ def safe_filename(value: str) -> str:
     return value or "asset"
 
 
+def field_value(fields: list[InfoboxField], source: str) -> str:
+    for field in fields:
+        if field.source == source:
+            return field.value_text
+    return ""
+
+
+def split_list(value: str) -> list[str]:
+    if not value:
+        return []
+    parts = re.split(r"\s*,\s*|\s*;\s*", value)
+    return [part.strip() for part in parts if part.strip()]
+
+
+def split_full_tags(value: str) -> list[str]:
+    return [part.strip() for part in value.split() if part.strip()]
+
+
+def parse_int(value: str) -> int | None:
+    match = re.search(r"-?\d+", value or "")
+    return int(match.group(0)) if match else None
+
+
+def bool_from_text(value: str, positive: str, negative_patterns: Iterable[str] = ()) -> bool | None:
+    if not value:
+        return None
+    for pattern in negative_patterns:
+        if re.search(pattern, value, flags=re.IGNORECASE):
+            return False
+    if re.search(rf"\b{re.escape(positive)}\b", value, flags=re.IGNORECASE):
+        return True
+    return None
+
+
+def derive_card_data(fields: list[InfoboxField], arts: list[ArtVariant]) -> dict[str, Any]:
+    booleans = field_value(fields, "booleans")
+    keywords = split_list(field_value(fields, "keywords"))
+    full_text = field_value(fields, "text")
+    formats = split_list(field_value(fields, "derived_formats"))
+    exclusions = split_list(field_value(fields, "derived_exclusions"))
+    full_tags_raw = field_value(fields, "fullTags")
+    artists = [{"variant": art.label, "artist": art.artist} for art in arts if art.artist]
+    collectible = bool_from_text(
+        booleans,
+        "Collectible",
+        negative_patterns=(r"\bNot\s+collectible\b", r"\bNon[-\s]?collectible\b", r"\bUncollectible\b"),
+    )
+    if collectible is None:
+        if re.search(r"\bCOLLECTIBLE=1\b", full_tags_raw):
+            collectible = True
+        elif re.search(r"\bCOLLECTIBLE=0\b", full_tags_raw):
+            collectible = False
+    non_collectible = None if collectible is None else not collectible
+    elite = bool_from_text(booleans, "Elite")
+    if elite is None and re.search(r"\bELITE=1\b", full_tags_raw):
+        elite = True
+    battlecry = (
+        any(keyword.upper() == "BATTLECRY" for keyword in keywords)
+        or "Battlecry:" in full_text
+        or bool(re.search(r"\bBATTLECRY=1\b", full_tags_raw))
+    )
+
+    return {
+        "name": field_value(fields, "name"),
+        "card_code": field_value(fields, "id"),
+        "dbf_id": parse_int(field_value(fields, "dbfId")),
+        "artist": artists[0]["artist"] if artists else None,
+        "artists": artists,
+        "full_text": full_text,
+        "battlecry": battlecry,
+        "keywords": keywords,
+        "rarity": field_value(fields, "rarity"),
+        "card_class": field_value(fields, "class"),
+        "card_type": field_value(fields, "type"),
+        "cost": parse_int(field_value(fields, "manaCost")),
+        "attack": parse_int(field_value(fields, "attack")),
+        "health": parse_int(field_value(fields, "health")),
+        "card_set": field_value(fields, "derived_cardSet"),
+        "collectible": collectible,
+        "non_collectible": non_collectible,
+        "elite": elite,
+        "availability": {
+            "exclusions": exclusions,
+            "formats": formats,
+        },
+        "formats": formats,
+        "exclusions": exclusions,
+        "wiki_mechanics": split_list(field_value(fields, "custom_mechanicTags")),
+        "wiki_tags": split_list(field_value(fields, "custom_refTags")),
+        "full_tags": split_full_tags(full_tags_raw),
+        "full_tags_raw": full_tags_raw,
+        "flavor": field_value(fields, "flavor"),
+        "voice_actor": field_value(fields, "custom_voiceActor"),
+        "race": field_value(fields, "custom_race"),
+    }
+
+
 def get_section_node(tree: html.HtmlElement, headline_id: str) -> html.HtmlElement | None:
     found = tree.xpath(f'//span[@id="{headline_id}"]/ancestor::h2[1]')
     return found[0] if found else None
@@ -581,6 +678,51 @@ def render_patch_markdown(groups: Iterable[PatchGroup]) -> str:
 def render_result_markdown(result: dict[str, Any]) -> str:
     lines: list[str] = [f"# {result['page_title']}"]
 
+    def markdown_value(value: Any) -> str:
+        if isinstance(value, list):
+            if any(isinstance(item, (dict, list)) for item in value):
+                return json.dumps(value, ensure_ascii=False)
+            return ", ".join(str(item) for item in value)
+        if isinstance(value, dict):
+            return json.dumps(value, ensure_ascii=False)
+        return str(value)
+
+    if result.get("card_data"):
+        lines.append("\n## Card data")
+        card_data = result["card_data"]
+        keys = [
+            "name",
+            "card_code",
+            "dbf_id",
+            "artist",
+            "artists",
+            "full_text",
+            "battlecry",
+            "keywords",
+            "rarity",
+            "card_class",
+            "card_type",
+            "cost",
+            "attack",
+            "health",
+            "card_set",
+            "collectible",
+            "non_collectible",
+            "elite",
+            "availability",
+            "formats",
+            "exclusions",
+            "wiki_mechanics",
+            "wiki_tags",
+            "full_tags",
+            "flavor",
+            "voice_actor",
+            "race",
+        ]
+        for key in keys:
+            value = card_data.get(key)
+            lines.append(f"- **{key}**: {markdown_value(value)}")
+
     if result.get("infobox_fields"):
         lines.append("\n## Infobox")
         for field in result["infobox_fields"]:
@@ -614,7 +756,8 @@ def render_result_markdown(result: dict[str, Any]) -> str:
         for group in result["sounds"]:
             lines.append(f"### {group['heading']}")
             for clip in group["clips"]:
-                lines.append(f"- `{clip['file_title']}` {clip['description']} ({clip['file_url']})")
+                description = f" - {clip['description']}" if clip["description"] else ""
+                lines.append(f"- `{clip['file_title']}`{description} ([listen]({clip['file_url']}))")
 
     if result.get("external_links"):
         lines.append("\n## External links")
@@ -645,6 +788,7 @@ def build_result(title: str, download: bool, output_dir: Path) -> dict[str, Any]
     rendered_html = get_rendered_html(title)
     infobox_fields = extract_infobox_fields(rendered_html)
     arts = extract_art_variants(rendered_html)
+    card_data = derive_card_data(infobox_fields, arts)
     related_cards = extract_card_groups(rendered_html, "Related_cards")
     generated_cards = extract_generated_card_pools(rendered_html)
     sounds = extract_sounds(rendered_html)
@@ -660,6 +804,7 @@ def build_result(title: str, download: bool, output_dir: Path) -> dict[str, Any]
     result = {
         "page_title": title,
         "page_url": canonical_page_url(title),
+        "card_data": card_data,
         "infobox_fields": [asdict(field) for field in infobox_fields],
         "arts": [asdict(art) for art in arts],
         "related_cards": [asdict(group) for group in related_cards],

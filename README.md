@@ -55,10 +55,13 @@ The JSON output contains these top-level keys:
 
 - `page_title`
 - `page_url`
+- `card_data`
 - `infobox_fields`
 - `arts`
 - `related_cards`
 - `generated_cards`
+- `sounds`
+- `external_links`
 - `patch_changes`
 
 Example card data for `C'Thun`:
@@ -68,17 +71,60 @@ Example card data for `C'Thun`:
 | Name | `C'Thun` |
 | Card id | `OG_280` |
 | dbfId | `38857` |
+| Class | `Neutral` |
+| Card type | `Minion` |
 | Cost | `8` |
 | Attack | `6` |
 | Health | `6` |
 | Card set | `Whispers of the Old Gods` |
 | Rarity | `Legendary` |
+| Collectible | `true` |
+| Non-collectible | `false` |
+| Elite | `true` |
 | Text | `Battlecry: Deal damage equal to this minion's Attack randomly split among all enemies.` |
+| Battlecry | `true` |
 | Artist | `James Ryman` |
 | Keywords | `BATTLECRY` |
-| Availability | `Default card generation`, `Wild` |
+| Availability formats | `Wild` |
+| Availability exclusions | `Default card generation` |
+| Wiki mechanics | `Battlecry`, `Deal damage` |
+| Wiki tags | `Attack-related`, `Random` |
+| Flavor | `C'Thun's least favorite Hearthstone card: Eye for an Eye.` |
 | Voice actor | `Michael Bell` |
 | Race | `Old God` |
+
+Normalized `card_data` excerpt:
+
+```json
+{
+  "name": "C'Thun",
+  "card_code": "OG_280",
+  "dbf_id": 38857,
+  "artist": "James Ryman",
+  "full_text": "Battlecry: Deal damage equal to this minion's Attack randomly split among all enemies.",
+  "battlecry": true,
+  "keywords": ["BATTLECRY"],
+  "rarity": "Legendary",
+  "card_class": "Neutral",
+  "card_type": "Minion",
+  "cost": 8,
+  "attack": 6,
+  "health": 6,
+  "card_set": "Whispers of the Old Gods",
+  "collectible": true,
+  "non_collectible": false,
+  "elite": true,
+  "availability": {
+    "exclusions": ["Default card generation"],
+    "formats": ["Wild"]
+  },
+  "wiki_mechanics": ["Battlecry", "Deal damage"],
+  "wiki_tags": ["Attack-related", "Random"],
+  "flavor": "C'Thun's least favorite Hearthstone card: Eye for an Eye.",
+  "voice_actor": "Michael Bell",
+  "race": "Old God"
+}
+```
 
 ## C'Thun Arts
 
@@ -169,18 +215,28 @@ The parser also keeps the smaller infobox stats that appear under the main card 
 
 ## C'Thun Sounds
 
-The `Sounds` section is extracted as grouped audio clips:
+The `Sounds` section is extracted as grouped audio clips. Each clip has a direct `file_url`, so it can be played from JSON or from the generated Markdown.
 
 - `Play`
-  - `VO_OG_280_Male_OldGod_Play_01.wav`
-  - `CThun_Play_Stinger.wav`
+  - [`VO_OG_280_Male_OldGod_Play_01.wav`](https://hearthstone.wiki.gg/images/VO_OG_280_Male_OldGod_Play_01.wav?32ea16): `My dreaming ends... Your nightmare... begins.`
+  - [`CThun_Play_Stinger.wav`](https://hearthstone.wiki.gg/images/CThun_Play_Stinger.wav?e61ea9): `<music stinger>`
 - `Trigger`
-  - `VO_OG_280_Male_OldGod_InPlay_01.wav`
-  - `VO_OG_280_Male_OldGod_InPlay_02.wav`
+  - [`VO_OG_280_Male_OldGod_InPlay_01.wav`](https://hearthstone.wiki.gg/images/VO_OG_280_Male_OldGod_InPlay_01.wav?78a6b0): `Your minions will abandon you.`
+  - [`VO_OG_280_Male_OldGod_InPlay_02.wav`](https://hearthstone.wiki.gg/images/VO_OG_280_Male_OldGod_InPlay_02.wav?7429aa): `Death is close.`
+  - [`VO_OG_280_Male_OldGod_InPlay_03.wav`](https://hearthstone.wiki.gg/images/VO_OG_280_Male_OldGod_InPlay_03.wav?e13a43): `Your deck betrays you.`
+  - [`VO_OG_280_Male_OldGod_InPlay_04.wav`](https://hearthstone.wiki.gg/images/VO_OG_280_Male_OldGod_InPlay_04.wav?19167e): `You have already lost.`
+  - [`VO_OG_280_Male_OldGod_InPlay_05.wav`](https://hearthstone.wiki.gg/images/VO_OG_280_Male_OldGod_InPlay_05.wav?3bed9f): `Caress your fear.`
+  - [`VO_OG_280_Male_OldGod_InPlay_06.wav`](https://hearthstone.wiki.gg/images/VO_OG_280_Male_OldGod_InPlay_06.wav?5e3708): `Your minions think you are weak`
+  - [`VO_OG_280_Male_OldGod_InPlay_07.wav`](https://hearthstone.wiki.gg/images/VO_OG_280_Male_OldGod_InPlay_07.wav?f5ab64): `Hope is an illusion.`
+  - [`VO_OG_280_Male_OldGod_InPlay_08.wav`](https://hearthstone.wiki.gg/images/VO_OG_280_Male_OldGod_InPlay_08.wav?9a8378): `It was your fault.`
+  - [`VO_OG_280_Male_OldGod_InPlay_09.wav`](https://hearthstone.wiki.gg/images/VO_OG_280_Male_OldGod_InPlay_09.wav?732793): `That was a mistake.`
+  - [`VO_OG_280_Male_OldGod_InPlay_10.wav`](https://hearthstone.wiki.gg/images/VO_OG_280_Male_OldGod_InPlay_10.wav?9a1101): `Flee, screaming.`
+  - [`VO_OG_280_Male_OldGod_InPlay_11.wav`](https://hearthstone.wiki.gg/images/VO_OG_280_Male_OldGod_InPlay_11.wav?a5d752): `Give in to your fear.`
+  - [`VO_OG_280_Male_OldGod_InPlay_12.wav`](https://hearthstone.wiki.gg/images/VO_OG_280_Male_OldGod_InPlay_12.wav?95670b): `Well met.`
 - `Attack`
-  - `VO_OG_280_Male_OldGod_Attack_01.wav`
+  - [`VO_OG_280_Male_OldGod_Attack_01.wav`](https://hearthstone.wiki.gg/images/VO_OG_280_Male_OldGod_Attack_01.wav?f0f54e): `Sleep.`
 - `Death`
-  - `VO_OG_280_Male_OldGod_Death_01.wav`
+  - [`VO_OG_280_Male_OldGod_Death_01.wav`](https://hearthstone.wiki.gg/images/VO_OG_280_Male_OldGod_Death_01.wav?d44bfc): `<death sound>`
 
 ## C'Thun External Links
 
