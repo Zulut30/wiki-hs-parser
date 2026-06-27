@@ -129,7 +129,7 @@ def normalize_title(value: str) -> str:
 
 
 def canonical_page_url(title: str) -> str:
-    safe = quote(title.replace(" ", "_"), safe="()!,-.")
+    safe = quote(title.replace(" ", "_"), safe="()!,-./")
     return f"{WIKI_BASE}/wiki/{safe}"
 
 
@@ -203,6 +203,26 @@ def parse_int(value: str) -> int | None:
     return int(match.group(0)) if match else None
 
 
+def derive_alternate_card_data(fields: list[InfoboxField]) -> dict[str, Any] | None:
+    card_code = field_value(fields, "other_id")
+    dbf_id = parse_int(field_value(fields, "other_dbfId"))
+    if not card_code and dbf_id is None:
+        return None
+    return {
+        "card_code": card_code,
+        "dbf_id": dbf_id,
+        "full_text": field_value(fields, "other_text"),
+        "card_type": field_value(fields, "other_type"),
+        "battlegrounds_tier": parse_int(field_value(fields, "other_bgTier")),
+        "attack": parse_int(field_value(fields, "other_attack")),
+        "health": parse_int(field_value(fields, "other_health")),
+        "minion_type": field_value(fields, "other_race"),
+        "full_tags": split_full_tags(field_value(fields, "other_fullTags")),
+        "full_tags_raw": field_value(fields, "other_fullTags"),
+        "race": field_value(fields, "other_custom_race"),
+    }
+
+
 def bool_from_text(value: str, positive: str, negative_patterns: Iterable[str] = ()) -> bool | None:
     if not value:
         return None
@@ -221,6 +241,7 @@ def derive_card_data(fields: list[InfoboxField], arts: list[ArtVariant]) -> dict
     formats = split_list(field_value(fields, "derived_formats"))
     exclusions = split_list(field_value(fields, "derived_exclusions"))
     full_tags_raw = field_value(fields, "fullTags")
+    armor_text = field_value(fields, "armor")
     artists = [{"variant": art.label, "artist": art.artist} for art in arts if art.artist]
     collectible = bool_from_text(
         booleans,
@@ -257,6 +278,10 @@ def derive_card_data(fields: list[InfoboxField], arts: list[ArtVariant]) -> dict
         "cost": parse_int(field_value(fields, "manaCost")),
         "attack": parse_int(field_value(fields, "attack")),
         "health": parse_int(field_value(fields, "health")),
+        "armor": parse_int(armor_text),
+        "armor_text": armor_text,
+        "battlegrounds_tier": parse_int(field_value(fields, "bgTier")),
+        "minion_type": field_value(fields, "race"),
         "card_set": field_value(fields, "derived_cardSet"),
         "collectible": collectible,
         "non_collectible": non_collectible,
@@ -274,6 +299,9 @@ def derive_card_data(fields: list[InfoboxField], arts: list[ArtVariant]) -> dict
         "flavor": field_value(fields, "flavor"),
         "voice_actor": field_value(fields, "custom_voiceActor"),
         "race": field_value(fields, "custom_race"),
+        "hero_description": field_value(fields, "hero_description"),
+        "hero_id": parse_int(field_value(fields, "hero_id")),
+        "alternate_card": derive_alternate_card_data(fields),
     }
 
 
@@ -705,6 +733,10 @@ def render_result_markdown(result: dict[str, Any]) -> str:
             "cost",
             "attack",
             "health",
+            "armor",
+            "armor_text",
+            "battlegrounds_tier",
+            "minion_type",
             "card_set",
             "collectible",
             "non_collectible",
@@ -718,6 +750,9 @@ def render_result_markdown(result: dict[str, Any]) -> str:
             "flavor",
             "voice_actor",
             "race",
+            "hero_description",
+            "hero_id",
+            "alternate_card",
         ]
         for key in keys:
             value = card_data.get(key)

@@ -14,6 +14,7 @@ It extracts:
 - sound recordings from the `Sounds` section
 - external links from the `External links` section
 - `Patch changes` from the page
+- fast `card_id` / `dbfId` lookup for cards, Battlegrounds minions, and Battlegrounds heroes
 
 `related_cards` and `generated_cards` store `card_code` values such as `OG_281` and `CORE_ULD_723`.
 
@@ -42,12 +43,42 @@ python wiki_hs_parser.py --page "https://hearthstone.wiki.gg/wiki/C%27Thun" --ou
 python wiki_hs_parser.py --page "https://hearthstone.wiki.gg/wiki/Mountain_Map" --output-dir out/mountain-map
 ```
 
+Fast lookup index:
+
+```bash
+python wiki_hs_lookup.py --refresh-index --scope all --index-path out/wiki-card-index.json
+```
+
+Fast lookup by normal card id:
+
+```bash
+python wiki_hs_lookup.py --id OG_280 --scope card --index-path out/wiki-card-index.json
+```
+
+Fast lookup by Battlegrounds minion id:
+
+```bash
+python wiki_hs_lookup.py --id BG26_817 --scope bg-minion --index-path out/wiki-card-index.json
+```
+
+Fast lookup by Battlegrounds hero id and then parse the found page:
+
+```bash
+python wiki_hs_lookup.py --id TB_BaconShop_HERO_29 --scope bg-hero --fetch --no-download --output-dir out/bg-cthun
+```
+
 Each run writes:
 
 - `out/<slug>/result.json`
 - `out/<slug>/result.md`
 - `out/<slug>/patch-changes.md`
 - `out/<slug>/arts/*`
+
+`wiki_hs_lookup.py` writes:
+
+- `out/lookup/lookup.json`
+- `out/wiki-card-index.json`
+- `result.json`, `result.md`, and `patch-changes.md` when `--fetch` is used
 
 ## What You Get
 
@@ -63,6 +94,97 @@ The JSON output contains these top-level keys:
 - `sounds`
 - `external_links`
 - `patch_changes`
+
+## Fast Lookup
+
+The lookup script uses the same Cargo data behind these Hearthstone Wiki query pages:
+
+- [Special:RunQuery/Card](https://hearthstone.wiki.gg/wiki/Special:RunQuery/Card)
+- [Special:RunQuery/BG/Minion](https://hearthstone.wiki.gg/wiki/Special:RunQuery/BG/Minion)
+- [Special:RunQuery/BG/Hero](https://hearthstone.wiki.gg/wiki/Special:RunQuery/BG/Hero)
+
+It builds a local JSON index so an app can resolve a `card_id` or `dbf_id` to a wiki page without scraping search pages every time.
+
+Supported scopes:
+
+- `card`: normal Hearthstone cards from `Special:RunQuery/Card`
+- `bg-minion`: Battlegrounds minion cards from `Special:RunQuery/BG/Minion`
+- `bg-hero`: Battlegrounds heroes from `Special:RunQuery/BG/Hero`
+- `all`: all three scopes
+
+Example lookup result for `OG_280`:
+
+```json
+{
+  "scope": "card",
+  "source_url": "https://hearthstone.wiki.gg/wiki/Special:RunQuery/Card",
+  "page_title": "C'Thun",
+  "page_url": "https://hearthstone.wiki.gg/wiki/C%27Thun",
+  "name": "C'Thun",
+  "card_id": "OG_280",
+  "dbf_id": 38857,
+  "details": {
+    "artist": "James Ryman",
+    "type_id": 4,
+    "cost": 8,
+    "attack": 6,
+    "health": 6,
+    "is_collectible": true,
+    "is_elite": true
+  }
+}
+```
+
+Example Battlegrounds minion lookup for `BG26_817`:
+
+```json
+{
+  "scope": "bg-minion",
+  "page_title": "Battlegrounds/Blade Collector",
+  "page_url": "https://hearthstone.wiki.gg/wiki/Battlegrounds/Blade_Collector",
+  "name": "Blade Collector",
+  "card_id": "BG26_817",
+  "dbf_id": 99035,
+  "details": {
+    "attack": 3,
+    "health": 2,
+    "tier": 4,
+    "is_pool_minion": true,
+    "premium_dbf_id": 99036
+  }
+}
+```
+
+Example Battlegrounds hero lookup for `TB_BaconShop_HERO_29`:
+
+```json
+{
+  "scope": "bg-hero",
+  "page_title": "Battlegrounds/C'Thun",
+  "page_url": "https://hearthstone.wiki.gg/wiki/Battlegrounds/C%27Thun",
+  "name": "C'Thun",
+  "card_id": "TB_BaconShop_HERO_29",
+  "dbf_id": 58535,
+  "details": {
+    "health": 30,
+    "armor": 20,
+    "is_draftable_hero": true,
+    "duos_armor": 18,
+    "buddy_dbf_id": 77475
+  }
+}
+```
+
+Use `--fetch` when the app needs the full parser result, including art variants, patch changes, sounds, related cards, generated cards, and external links.
+
+For Battlegrounds pages, `--fetch` also normalizes optional infobox fields into `card_data`:
+
+- `armor` and `armor_text`
+- `battlegrounds_tier`
+- `minion_type`
+- `hero_description`
+- `hero_id`
+- `alternate_card` for linked golden/alternate card stats from `other_*` infobox fields
 
 Example card data for `C'Thun`:
 
