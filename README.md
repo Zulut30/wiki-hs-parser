@@ -43,6 +43,26 @@ python wiki_hs_parser.py --page "https://hearthstone.wiki.gg/wiki/C%27Thun" --ou
 python wiki_hs_parser.py --page "https://hearthstone.wiki.gg/wiki/Mountain_Map" --output-dir out/mountain-map
 ```
 
+## GitHub Pages Demo
+
+The one-page static demo lives in `docs/` and shows the parser output on the `C'Thun` example:
+
+- all visible card versions: regular, golden, signature
+- full art files
+- normalized `card_data`
+- playable sound effects
+- related card codes
+- external links
+- patch changes
+
+Open locally:
+
+```bash
+python -m http.server 8080 --directory docs
+```
+
+Then visit `http://localhost:8080`.
+
 Fast lookup index:
 
 ```bash

@@ -1,0 +1,344 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="A one-page C'Thun extraction demo for wiki-hs-parser: card versions, normalized data, sounds, related cards, links, and patch history."
+    />
+    <title>wiki-hs-parser | C'Thun extraction demo</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,750&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="site-header" data-reveal>
+      <a class="brand" href="#top" aria-label="wiki-hs-parser home">
+        <span class="brand-mark">w</span>
+        <span>wiki-hs-parser</span>
+      </a>
+      <nav class="nav" aria-label="Page sections">
+        <a href="#versions">Versions</a>
+        <a href="#data">Data</a>
+        <a href="#sounds">Sounds</a>
+        <a href="#relations">Relations</a>
+        <a href="#patches">Patches</a>
+      </nav>
+      <a class="header-link" href="https://github.com/Zulut30/wiki-hs-parser">GitHub</a>
+    </header>
+
+    <main id="top">
+      <section class="hero section-pad" data-reveal>
+        <div class="hero-copy">
+          <h1>C'Thun extraction demo</h1>
+          <p>
+            A compact GitHub Pages demo showing what the parser pulls from Hearthstone Wiki:
+            every visible card version, normalized stats, full-art files, audio clips, related
+            card codes, external links, and patch history.
+          </p>
+          <div class="hero-actions">
+            <a class="button primary" href="#data">Inspect data</a>
+            <a class="button ghost" href="#sounds">Play sounds</a>
+          </div>
+          <dl class="hero-facts" aria-label="C'Thun quick facts">
+            <div>
+              <dt>Card id</dt>
+              <dd>OG_280</dd>
+            </div>
+            <div>
+              <dt>dbfId</dt>
+              <dd>38857</dd>
+            </div>
+            <div>
+              <dt>Variants</dt>
+              <dd>3</dd>
+            </div>
+            <div>
+              <dt>Sound clips</dt>
+              <dd>16</dd>
+            </div>
+          </dl>
+        </div>
+        <div class="hero-media" aria-label="C'Thun card and full art">
+          <div class="art-frame">
+            <img src="assets/art/cthun-full.jpg" alt="C'Thun full artwork" />
+          </div>
+          <img class="hero-card" src="assets/cards/cthun-regular.png" alt="C'Thun regular card" />
+        </div>
+      </section>
+
+      <section id="versions" class="section-pad card-versions" data-reveal>
+        <div class="section-heading">
+          <h2>All visible versions</h2>
+          <p>
+            The script reads the infobox tabs and stores every visible art variant with the wiki file
+            URL, file title, artist, and optional downloaded path.
+          </p>
+        </div>
+        <div class="version-grid">
+          <article class="version-card">
+            <img src="assets/cards/cthun-regular.png" alt="C'Thun regular card" />
+            <div>
+              <h3>Regular</h3>
+              <p>File:OG_280.png</p>
+              <span>Artist: James Ryman</span>
+            </div>
+          </article>
+          <article class="version-card gold">
+            <img src="assets/cards/cthun-golden.png" alt="C'Thun golden card" />
+            <div>
+              <h3>Golden</h3>
+              <p>File:OG_280_Premium1.png</p>
+              <span>Artist: James Ryman</span>
+            </div>
+          </article>
+          <article class="version-card signature">
+            <img src="assets/cards/cthun-signature.png" alt="C'Thun signature card" />
+            <div>
+              <h3>Signature</h3>
+              <p>File:OG_280_Premium3.png</p>
+              <span>Artist: Vladimir Kafanov</span>
+            </div>
+          </article>
+        </div>
+        <div class="art-row">
+          <figure>
+            <img src="assets/art/cthun-full.jpg" alt="C'Thun regular full art" />
+            <figcaption>Regular full art</figcaption>
+          </figure>
+          <figure>
+            <img src="assets/art/cthun-signature-full.jpg" alt="C'Thun signature full art" />
+            <figcaption>Signature full art</figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <section id="data" class="section-pad data-section" data-reveal>
+        <div class="section-heading split">
+          <div>
+            <h2>Normalized card data</h2>
+            <p>
+              `card_data` converts wiki infobox fields into stable keys your app can consume without
+              parsing labels or HTML.
+            </p>
+          </div>
+          <button class="button compact" type="button" data-copy="#json-sample">Copy JSON</button>
+        </div>
+        <div class="data-layout">
+          <div class="data-table" aria-label="C'Thun normalized fields">
+            <div><span>Name</span><strong>C'Thun</strong></div>
+            <div><span>Card id</span><strong>OG_280</strong></div>
+            <div><span>dbfId</span><strong>38857</strong></div>
+            <div><span>Class</span><strong>Neutral</strong></div>
+            <div><span>Type</span><strong>Minion</strong></div>
+            <div><span>Cost</span><strong>8</strong></div>
+            <div><span>Attack / Health</span><strong>6 / 6</strong></div>
+            <div><span>Set</span><strong>Whispers of the Old Gods</strong></div>
+            <div><span>Rarity</span><strong>Legendary</strong></div>
+            <div><span>Collectible</span><strong>true</strong></div>
+            <div><span>Elite</span><strong>true</strong></div>
+            <div><span>Keyword</span><strong>BATTLECRY</strong></div>
+            <div><span>Wiki mechanics</span><strong>Battlecry, Deal damage</strong></div>
+            <div><span>Wiki tags</span><strong>Attack-related, Random</strong></div>
+            <div><span>Availability</span><strong>Wild, Default card generation exclusion</strong></div>
+            <div><span>Voice actor</span><strong>Michael Bell</strong></div>
+            <div><span>Race</span><strong>Old God</strong></div>
+          </div>
+          <pre class="json-panel" id="json-sample"><code>{
+  "name": "C'Thun",
+  "card_code": "OG_280",
+  "dbf_id": 38857,
+  "battlecry": true,
+  "keywords": ["BATTLECRY"],
+  "rarity": "Legendary",
+  "card_class": "Neutral",
+  "card_type": "Minion",
+  "cost": 8,
+  "attack": 6,
+  "health": 6,
+  "collectible": true,
+  "non_collectible": false,
+  "formats": ["Wild"],
+  "exclusions": ["Default card generation"],
+  "wiki_mechanics": ["Battlecry", "Deal damage"],
+  "wiki_tags": ["Attack-related", "Random"],
+  "flavor": "C'Thun's least favorite Hearthstone card: Eye for an Eye.",
+  "voice_actor": "Michael Bell",
+  "race": "Old God"
+}</code></pre>
+        </div>
+      </section>
+
+      <section id="sounds" class="section-pad sounds-section" data-reveal>
+        <div class="section-heading">
+          <h2>All sound effects</h2>
+          <p>
+            Each clip is extracted from the wiki `Sounds` section with a direct `.wav` URL and grouped
+            by trigger.
+          </p>
+        </div>
+        <div class="sound-groups">
+          <article class="sound-group">
+            <h3>Play</h3>
+            <div class="sound-row">
+              <div><strong>VO_OG_280_Male_OldGod_Play_01.wav</strong><span>My dreaming ends... Your nightmare... begins.</span></div>
+              <audio controls preload="none" src="https://hearthstone.wiki.gg/images/VO_OG_280_Male_OldGod_Play_01.wav?32ea16"></audio>
+            </div>
+            <div class="sound-row">
+              <div><strong>CThun_Play_Stinger.wav</strong><span>&lt;music stinger&gt;</span></div>
+              <audio controls preload="none" src="https://hearthstone.wiki.gg/images/CThun_Play_Stinger.wav?e61ea9"></audio>
+            </div>
+          </article>
+
+          <article class="sound-group">
+            <h3>Trigger</h3>
+            <div class="sound-row"><div><strong>VO_OG_280_Male_OldGod_InPlay_01.wav</strong><span>Your minions will abandon you.</span></div><audio controls preload="none" src="https://hearthstone.wiki.gg/images/VO_OG_280_Male_OldGod_InPlay_01.wav?78a6b0"></audio></div>
+            <div class="sound-row"><div><strong>VO_OG_280_Male_OldGod_InPlay_02.wav</strong><span>Death is close.</span></div><audio controls preload="none" src="https://hearthstone.wiki.gg/images/VO_OG_280_Male_OldGod_InPlay_02.wav?7429aa"></audio></div>
+            <div class="sound-row"><div><strong>VO_OG_280_Male_OldGod_InPlay_03.wav</strong><span>Your deck betrays you.</span></div><audio controls preload="none" src="https://hearthstone.wiki.gg/images/VO_OG_280_Male_OldGod_InPlay_03.wav?e13a43"></audio></div>
+            <div class="sound-row"><div><strong>VO_OG_280_Male_OldGod_InPlay_04.wav</strong><span>You have already lost.</span></div><audio controls preload="none" src="https://hearthstone.wiki.gg/images/VO_OG_280_Male_OldGod_InPlay_04.wav?19167e"></audio></div>
+            <div class="sound-row"><div><strong>VO_OG_280_Male_OldGod_InPlay_05.wav</strong><span>Caress your fear.</span></div><audio controls preload="none" src="https://hearthstone.wiki.gg/images/VO_OG_280_Male_OldGod_InPlay_05.wav?3bed9f"></audio></div>
+            <div class="sound-row"><div><strong>VO_OG_280_Male_OldGod_InPlay_06.wav</strong><span>Your minions think you are weak</span></div><audio controls preload="none" src="https://hearthstone.wiki.gg/images/VO_OG_280_Male_OldGod_InPlay_06.wav?5e3708"></audio></div>
+            <div class="sound-row"><div><strong>VO_OG_280_Male_OldGod_InPlay_07.wav</strong><span>Hope is an illusion.</span></div><audio controls preload="none" src="https://hearthstone.wiki.gg/images/VO_OG_280_Male_OldGod_InPlay_07.wav?f5ab64"></audio></div>
+            <div class="sound-row"><div><strong>VO_OG_280_Male_OldGod_InPlay_08.wav</strong><span>It was your fault.</span></div><audio controls preload="none" src="https://hearthstone.wiki.gg/images/VO_OG_280_Male_OldGod_InPlay_08.wav?9a8378"></audio></div>
+            <div class="sound-row"><div><strong>VO_OG_280_Male_OldGod_InPlay_09.wav</strong><span>That was a mistake.</span></div><audio controls preload="none" src="https://hearthstone.wiki.gg/images/VO_OG_280_Male_OldGod_InPlay_09.wav?732793"></audio></div>
+            <div class="sound-row"><div><strong>VO_OG_280_Male_OldGod_InPlay_10.wav</strong><span>Flee, screaming.</span></div><audio controls preload="none" src="https://hearthstone.wiki.gg/images/VO_OG_280_Male_OldGod_InPlay_10.wav?9a1101"></audio></div>
+            <div class="sound-row"><div><strong>VO_OG_280_Male_OldGod_InPlay_11.wav</strong><span>Give in to your fear.</span></div><audio controls preload="none" src="https://hearthstone.wiki.gg/images/VO_OG_280_Male_OldGod_InPlay_11.wav?a5d752"></audio></div>
+            <div class="sound-row"><div><strong>VO_OG_280_Male_OldGod_InPlay_12.wav</strong><span>Well met.</span></div><audio controls preload="none" src="https://hearthstone.wiki.gg/images/VO_OG_280_Male_OldGod_InPlay_12.wav?95670b"></audio></div>
+          </article>
+
+          <article class="sound-group two-up">
+            <h3>Attack</h3>
+            <div class="sound-row">
+              <div><strong>VO_OG_280_Male_OldGod_Attack_01.wav</strong><span>Sleep.</span></div>
+              <audio controls preload="none" src="https://hearthstone.wiki.gg/images/VO_OG_280_Male_OldGod_Attack_01.wav?f0f54e"></audio>
+            </div>
+          </article>
+          <article class="sound-group two-up">
+            <h3>Death</h3>
+            <div class="sound-row">
+              <div><strong>VO_OG_280_Male_OldGod_Death_01.wav</strong><span>&lt;death sound&gt;</span></div>
+              <audio controls preload="none" src="https://hearthstone.wiki.gg/images/VO_OG_280_Male_OldGod_Death_01.wav?d44bfc"></audio>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section id="relations" class="section-pad relations-section" data-reveal>
+        <div class="section-heading">
+          <h2>Related cards and generated cards</h2>
+          <p>
+            Related and generated card pools keep the actual card code, so the app can link results
+            back into Hearthstone data.
+          </p>
+        </div>
+        <div class="related-grid">
+          <article>
+            <h3>Cards that improve C'Thun</h3>
+            <ul class="code-list">
+              <li><code>OG_281</code> Beckoner of Evil</li>
+              <li><code>OG_303</code> Cult Sorcerer</li>
+              <li><code>OG_284</code> Twilight Geomancer</li>
+              <li><code>OG_162</code> Disciple of C'Thun</li>
+              <li><code>OG_286</code> Twilight Elder</li>
+              <li><code>OG_283</code> C'Thun's Chosen</li>
+              <li><code>OG_321</code> Crazed Worshipper</li>
+              <li><code>OG_334</code> Hooded Acolyte</li>
+              <li><code>OG_302</code> Usher of Souls</li>
+              <li><code>OG_293</code> Dark Arakkoa</li>
+              <li><code>OG_339</code> Skeram Cultist</li>
+              <li><code>OG_282</code> Blade of C'Thun</li>
+              <li><code>OG_255</code> Doomcaller</li>
+            </ul>
+          </article>
+          <article>
+            <h3>C'Thun-related conditions</h3>
+            <ul class="code-list">
+              <li><code>WON_144</code> Eyestalk of C'Thun</li>
+              <li><code>OG_188</code> Klaxxi Amber-Weaver</li>
+              <li><code>OG_096</code> Twilight Darkmender</li>
+              <li><code>OG_301</code> Ancient Shieldbearer</li>
+              <li><code>OG_131</code> Twin Emperor Vek'lor</li>
+              <li><code>OG_255</code> Doomcaller</li>
+            </ul>
+            <p class="empty-note">
+              C'Thun has no `generated_cards` pools. Pages such as Mountain Map are supported by the
+              same parser and return generated card codes.
+            </p>
+          </article>
+        </div>
+        <div class="mini-card-strip" aria-label="Related card previews">
+          <img src="assets/cards/beckoner-of-evil.png" alt="Beckoner of Evil" />
+          <img src="assets/cards/cult-sorcerer.png" alt="Cult Sorcerer" />
+          <img src="assets/cards/twilight-geomancer.png" alt="Twilight Geomancer" />
+          <img src="assets/cards/eyestalk-of-cthun.png" alt="Eyestalk of C'Thun" />
+          <img src="assets/cards/klaxxi-amber-weaver.png" alt="Klaxxi Amber-Weaver" />
+          <img src="assets/cards/twin-emperor-veklor.png" alt="Twin Emperor Vek'lor" />
+        </div>
+      </section>
+
+      <section id="patches" class="section-pad patches-section" data-reveal>
+        <div class="section-heading">
+          <h2>Patch changes</h2>
+          <p>The parser keeps the patch heading, patch page URL, date, and every listed change item.</p>
+        </div>
+        <ol class="timeline">
+          <li>
+            <time>2026-03-10</time>
+            <a href="https://hearthstone.wiki.gg/wiki/Patch_35.0.0.237510">Patch 35.0.0.237510</a>
+            <p>Removed golden card unlock requirement.</p>
+          </li>
+          <li>
+            <time>2024-10-29</time>
+            <a href="https://hearthstone.wiki.gg/wiki/Patch_31.0.0.210009">Patch 31.0.0.210009</a>
+            <p>Banned from card generation unless the deck started with C'Thun or a related card.</p>
+          </li>
+          <li>
+            <time>2024-03-11</time>
+            <a href="https://hearthstone.wiki.gg/wiki/Patch_29.0.0.195635">Patch 29.0.0.195635</a>
+            <p>No longer globally banned from Arena drafting.</p>
+          </li>
+          <li>
+            <time>2023-08-22</time>
+            <a href="https://hearthstone.wiki.gg/wiki/Patch_27.2.0.183876">Patch 27.2.0.183876</a>
+            <p>Cost changed to 8, C'Thun buffs became permanent, and Signature version was added.</p>
+          </li>
+          <li>
+            <time>2016-06-01</time>
+            <a href="https://hearthstone.wiki.gg/wiki/Patch_5.0.0.13030">Patch 5.0.0.13030</a>
+            <p>Bug fix for Redemption bringing C'Thun back with full buffed health.</p>
+          </li>
+          <li>
+            <time>2016-04-24</time>
+            <a href="https://hearthstone.wiki.gg/wiki/Patch_5.0.0.12574">Patch 5.0.0.12574</a>
+            <p>Added.</p>
+          </li>
+        </ol>
+      </section>
+
+      <section class="section-pad final-section" data-reveal>
+        <div>
+          <h2>External links</h2>
+          <p>External links are extracted from the page and preserved as label plus URL.</p>
+        </div>
+        <div class="external-links">
+          <a href="https://hearthstone.blizzard.com/cards/38857">PlayHearthstone</a>
+          <a href="https://hsreplay.net/cards/38857">HSReplay.net</a>
+          <a href="https://www.hearthpwn.com/cards/31110">Hearthpwn</a>
+          <a href="https://github.com/Zulut30/wiki-hs-parser">GitHub repository</a>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <span>wiki-hs-parser demo page</span>
+      <span>Data source: hearthstone.wiki.gg public MediaWiki and Cargo APIs</span>
+    </footer>
+
+    <script src="script.js"></script>
+  </body>
+</html>
