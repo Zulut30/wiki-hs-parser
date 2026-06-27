@@ -23,6 +23,7 @@ USER_AGENT = "wiki-hs-parser/1.0 (+https://github.com/Zulut30/wiki-hs-parser)"
 class ArtVariant:
     label: str
     source: str
+    artist: str | None
     file_title: str
     file_url: str
     file_page_url: str
@@ -74,6 +75,26 @@ class GeneratedCardPool:
     description: str
     query_url: str
     cards: list[CardLink]
+
+
+@dataclass
+class SoundClip:
+    group: str
+    file_title: str
+    file_url: str
+    description: str
+
+
+@dataclass
+class SoundGroup:
+    heading: str
+    clips: list[SoundClip]
+
+
+@dataclass
+class ExternalLink:
+    label: str
+    url: str
 
 
 _CARD_CODE_CACHE: dict[str, str | None] = {}
@@ -201,6 +222,15 @@ def element_links(node: html.HtmlElement) -> list[CardLink]:
     return links
 
 
+def extract_artist_from_figure(figure: html.HtmlElement) -> str | None:
+    caption = figure.xpath('.//figcaption')
+    if not caption:
+        return None
+    text = extract_text(caption[0])
+    match = re.search(r"Artist:\s*(.+)$", text)
+    return match.group(1).strip() if match else None
+
+
 def resolve_card_code(page_url: str) -> str | None:
     cached = _CARD_CODE_CACHE.get(page_url)
     if page_url in _CARD_CODE_CACHE:
@@ -277,6 +307,7 @@ def extract_art_variants(rendered_html: str) -> list[ArtVariant]:
         source = figure.get("data-source") or ""
         if not source.startswith("image"):
             continue
+        artist = extract_artist_from_figure(figure)
         content = figure.xpath('ancestor::div[contains(@class,"pi-section-content")][1]')
         ref = content[0].get("data-ref") if content else None
         label = label_map.get(ref or "", source)
@@ -290,6 +321,7 @@ def extract_art_variants(rendered_html: str) -> list[ArtVariant]:
             ArtVariant(
                 label=label,
                 source=source,
+                artist=artist,
                 file_title=file_title,
                 file_url=file_url,
                 file_page_url=f"{WIKI_BASE}{file_href[0]}",
@@ -298,6 +330,90 @@ def extract_art_variants(rendered_html: str) -> list[ArtVariant]:
             )
         )
     return variants
+
+
+def extract_sounds(rendered_html: str) -> list[SoundGroup]:
+    tree = html.fromstring(rendered_html)
+    start = get_section_node(tree, "Sounds")
+    if start is None:
+        return []
+
+    groups: list[SoundGroup] = []
+    node = start.getnext()
+    current_heading = ""
+    current_clips: list[SoundClip] = []
+
+    def flush() -> None:
+        nonlocal current_heading, current_clips
+        if current_heading and current_clips:
+            groups.append(SoundGroup(heading=current_heading, clips=current_clips))
+        current_heading = ""
+        current_clips = []
+
+    while node is not None:
+        if node.tag == "h2":
+            break
+        if node.tag == "dl":
+            flush()
+            current_heading = extract_text(node)
+        elif node.tag == "ul" and current_heading:
+            for li in node.xpath("./li"):
+                clip = extract_sound_clip(li, current_heading)
+                if clip:
+                    current_clips.append(clip)
+        node = node.getnext()
+
+    flush()
+    return groups
+
+
+def extract_sound_clip(li: html.HtmlElement, group: str) -> SoundClip | None:
+    title = li.get("title") or ""
+    source = li.xpath('.//audio/source/@src')
+    if not source:
+        return None
+    file_url = source[0]
+    code_node = li.xpath('.//code[contains(@class,"advancededitor")][1]')
+    file_title = extract_text(code_node[0]) if code_node else title
+    if code_node:
+        parts: list[str] = []
+        tail = (code_node[0].tail or "").strip()
+        if tail:
+            parts.append(tail)
+        for sibling in code_node[0].itersiblings():
+            sibling_text = extract_text(sibling)
+            if sibling_text:
+                parts.append(sibling_text)
+        description = " ".join(parts).strip()
+    else:
+        text = extract_text(li)
+        description = text.replace(file_title, "", 1).strip()
+    return SoundClip(
+        group=group,
+        file_title=file_title,
+        file_url=file_url,
+        description=description,
+    )
+
+
+def extract_external_links(rendered_html: str) -> list[ExternalLink]:
+    tree = html.fromstring(rendered_html)
+    start = get_section_node(tree, "External_links")
+    if start is None:
+        return []
+    links: list[ExternalLink] = []
+    node = start.getnext()
+    while node is not None:
+        if node.tag == "h2":
+            break
+        if node.tag == "ul":
+            for li in node.xpath("./li"):
+                for a in li.xpath('.//a[@href]'):
+                    href = a.get("href") or ""
+                    if href.startswith("http://") or href.startswith("https://"):
+                        links.append(ExternalLink(label=extract_text(a), url=href))
+        node = node.getnext()
+    return links
 
 
 def extract_card_groups(rendered_html: str, section_id: str) -> list[CardGroup]:
@@ -473,7 +589,8 @@ def render_result_markdown(result: dict[str, Any]) -> str:
     if result.get("arts"):
         lines.append("\n## Art variants")
         for art in result["arts"]:
-            lines.append(f"- **{art['label']}**: {art['file_url']}")
+            artist = f" by {art['artist']}" if art.get("artist") else ""
+            lines.append(f"- **{art['label']}**{artist}: {art['file_url']}")
 
     if result.get("related_cards"):
         lines.append("\n## Related cards")
@@ -491,6 +608,18 @@ def render_result_markdown(result: dict[str, Any]) -> str:
             for card in pool["cards"]:
                 code = f" `{card['card_code']}`" if card.get("card_code") else ""
                 lines.append(f"  - [{card['title']}]({card['href']}){code}")
+
+    if result.get("sounds"):
+        lines.append("\n## Sounds")
+        for group in result["sounds"]:
+            lines.append(f"### {group['heading']}")
+            for clip in group["clips"]:
+                lines.append(f"- `{clip['file_title']}` {clip['description']} ({clip['file_url']})")
+
+    if result.get("external_links"):
+        lines.append("\n## External links")
+        for link in result["external_links"]:
+            lines.append(f"- [{link['label']}]({link['url']})")
 
     if result.get("patch_changes"):
         lines.append("\n" + render_patch_markdown(
@@ -518,6 +647,8 @@ def build_result(title: str, download: bool, output_dir: Path) -> dict[str, Any]
     arts = extract_art_variants(rendered_html)
     related_cards = extract_card_groups(rendered_html, "Related_cards")
     generated_cards = extract_generated_card_pools(rendered_html)
+    sounds = extract_sounds(rendered_html)
+    external_links = extract_external_links(rendered_html)
     patches = extract_patch_changes(rendered_html)
 
     if download:
@@ -533,6 +664,8 @@ def build_result(title: str, download: bool, output_dir: Path) -> dict[str, Any]
         "arts": [asdict(art) for art in arts],
         "related_cards": [asdict(group) for group in related_cards],
         "generated_cards": generated_cards,
+        "sounds": [asdict(group) for group in sounds],
+        "external_links": [asdict(link) for link in external_links],
         "patch_changes": [
             {
                 "heading": group.heading,
