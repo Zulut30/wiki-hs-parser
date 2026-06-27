@@ -35,6 +35,7 @@ class ArtVariant:
 class CardLink:
     title: str
     href: str
+    card_code: str | None = None
     image_alt: str | None = None
     image_url: str | None = None
 
@@ -73,6 +74,9 @@ class GeneratedCardPool:
     description: str
     query_url: str
     cards: list[CardLink]
+
+
+_CARD_CODE_CACHE: dict[str, str | None] = {}
 
 
 def http_get_json(url: str) -> dict[str, Any]:
@@ -189,11 +193,36 @@ def element_links(node: html.HtmlElement) -> list[CardLink]:
             CardLink(
                 title=title.strip(),
                 href=f"{WIKI_BASE}{href}",
+                card_code=resolve_card_code(f"{WIKI_BASE}{href}"),
                 image_alt=image_alt,
                 image_url=f"{WIKI_BASE}{image_url}" if image_url and image_url.startswith("/") else image_url,
             )
         )
     return links
+
+
+def resolve_card_code(page_url: str) -> str | None:
+    cached = _CARD_CODE_CACHE.get(page_url)
+    if page_url in _CARD_CODE_CACHE:
+        return cached
+
+    try:
+        rendered_html = get_rendered_html(normalize_title(page_url))
+    except Exception:
+        _CARD_CODE_CACHE[page_url] = None
+        return None
+
+    tree = html.fromstring(rendered_html)
+    field = tree.xpath('//*[@data-source="id"]')
+    if not field:
+        _CARD_CODE_CACHE[page_url] = None
+        return None
+
+    value_node = field[0].xpath('.//*[contains(@class,"pi-data-value")][1]')
+    code = extract_text(value_node[0]) if value_node else extract_text(field[0])
+    code = code.strip()
+    _CARD_CODE_CACHE[page_url] = code or None
+    return _CARD_CODE_CACHE[page_url]
 
 
 def extract_infobox_fields(rendered_html: str) -> list[InfoboxField]:
@@ -295,6 +324,7 @@ def extract_card_groups(rendered_html: str, section_id: str) -> list[CardGroup]:
                         CardLink(
                             title=a.get("title") or extract_text(a),
                             href=f"{WIKI_BASE}{a.get('href')}",
+                            card_code=resolve_card_code(f"{WIKI_BASE}{a.get('href')}"),
                             image_alt=img[0].get("alt") if img else None,
                             image_url=img[0].get("src") if img else None,
                         )
@@ -345,6 +375,7 @@ def extract_card_pool(query_url: str) -> list[CardLink]:
             CardLink(
                 title=a.get("title") or extract_text(a),
                 href=f"{WIKI_BASE}{a.get('href')}",
+                card_code=resolve_card_code(f"{WIKI_BASE}{a.get('href')}"),
                 image_alt=img[0].get("alt") if img else None,
                 image_url=img[0].get("src") if img else None,
             )
@@ -449,7 +480,8 @@ def render_result_markdown(result: dict[str, Any]) -> str:
         for group in result["related_cards"]:
             lines.append(f"### {group['heading']}")
             for card in group["cards"]:
-                lines.append(f"- [{card['title']}]({card['href']})")
+                code = f" `{card['card_code']}`" if card.get("card_code") else ""
+                lines.append(f"- [{card['title']}]({card['href']}){code}")
 
     if result.get("generated_cards"):
         lines.append("\n## Generated cards")
@@ -457,7 +489,8 @@ def render_result_markdown(result: dict[str, Any]) -> str:
             lines.append(f"- {pool['description']}")
             lines.append(f"  - Query: {pool['query_url']}")
             for card in pool["cards"]:
-                lines.append(f"  - [{card['title']}]({card['href']})")
+                code = f" `{card['card_code']}`" if card.get("card_code") else ""
+                lines.append(f"  - [{card['title']}]({card['href']}){code}")
 
     if result.get("patch_changes"):
         lines.append("\n" + render_patch_markdown(
