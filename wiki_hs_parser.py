@@ -4,7 +4,7 @@ import argparse
 import json
 import re
 import sys
-from dataclasses import dataclass, asdict
+from dataclasses import asdict, dataclass, field
 from html import unescape
 from pathlib import Path
 from typing import Any, Iterable
@@ -32,6 +32,23 @@ class ArtVariant:
 
 
 @dataclass
+class CardLink:
+    title: str
+    href: str
+    image_alt: str | None = None
+    image_url: str | None = None
+
+
+@dataclass
+class InfoboxField:
+    source: str
+    label: str
+    value_text: str
+    value_html: str | None = None
+    links: list[CardLink] = field(default_factory=list)
+
+
+@dataclass
 class PatchEntry:
     patch: str
     patch_url: str
@@ -43,6 +60,19 @@ class PatchEntry:
 class PatchGroup:
     heading: str
     entries: list[PatchEntry]
+
+
+@dataclass
+class CardGroup:
+    heading: str
+    cards: list[CardLink]
+
+
+@dataclass
+class GeneratedCardPool:
+    description: str
+    query_url: str
+    cards: list[CardLink]
 
 
 def http_get_json(url: str) -> dict[str, Any]:
@@ -125,6 +155,85 @@ def safe_filename(value: str) -> str:
     return value or "asset"
 
 
+def get_section_node(tree: html.HtmlElement, headline_id: str) -> html.HtmlElement | None:
+    found = tree.xpath(f'//span[@id="{headline_id}"]/ancestor::h2[1]')
+    return found[0] if found else None
+
+
+def iter_section_nodes(tree: html.HtmlElement, headline_id: str) -> list[html.HtmlElement]:
+    start = get_section_node(tree, headline_id)
+    if start is None:
+        return []
+
+    nodes: list[html.HtmlElement] = []
+    node = start.getnext()
+    while node is not None:
+        if node.tag == "h2":
+            break
+        nodes.append(node)
+        node = node.getnext()
+    return nodes
+
+
+def element_links(node: html.HtmlElement) -> list[CardLink]:
+    links: list[CardLink] = []
+    for a in node.xpath('.//a[@href]'):
+        href = a.get("href") or ""
+        if not href.startswith("/wiki/"):
+            continue
+        title = a.get("title") or extract_text(a)
+        image = a.xpath(".//img[1]")
+        image_alt = image[0].get("alt") if image else None
+        image_url = image[0].get("src") if image else None
+        links.append(
+            CardLink(
+                title=title.strip(),
+                href=f"{WIKI_BASE}{href}",
+                image_alt=image_alt,
+                image_url=f"{WIKI_BASE}{image_url}" if image_url and image_url.startswith("/") else image_url,
+            )
+        )
+    return links
+
+
+def extract_infobox_fields(rendered_html: str) -> list[InfoboxField]:
+    tree = html.fromstring(rendered_html)
+    aside = tree.xpath('//aside[contains(@class,"portable-infobox")]')
+    if not aside:
+        return []
+    infobox = aside[0]
+
+    fields: list[InfoboxField] = []
+    for node in infobox.xpath('.//*[@data-source]'):
+        source = node.get("data-source") or ""
+        if not source or source.startswith("image"):
+            continue
+        if node.tag == "figure":
+            continue
+
+        label_node = node.xpath('.//*[contains(@class,"pi-data-label")][1]')
+        value_node = node.xpath('.//*[contains(@class,"pi-data-value")][1]')
+        label = (extract_text(label_node[0]) if label_node else source).rstrip(":")
+        value_el = value_node[0] if value_node else node
+
+        value_text = extract_text(value_el)
+        value_html = html.tostring(value_el, encoding="unicode", with_tail=False)
+        links = element_links(value_el)
+
+        if not value_text and not links:
+            continue
+        fields.append(
+            InfoboxField(
+                source=source,
+                label=label,
+                value_text=value_text,
+                value_html=value_html,
+                links=links,
+            )
+        )
+    return fields
+
+
 def extract_art_variants(rendered_html: str) -> list[ArtVariant]:
     tree = html.fromstring(rendered_html)
     label_map: dict[str, str] = {}
@@ -160,6 +269,87 @@ def extract_art_variants(rendered_html: str) -> list[ArtVariant]:
             )
         )
     return variants
+
+
+def extract_card_groups(rendered_html: str, section_id: str) -> list[CardGroup]:
+    tree = html.fromstring(rendered_html)
+    groups: list[CardGroup] = []
+    nodes = iter_section_nodes(tree, section_id)
+    idx = 0
+    while idx < len(nodes):
+        node = nodes[idx]
+        heading = ""
+        if node.tag in {"h3", "h4"}:
+            heading = extract_text(node)
+        if heading and idx + 1 < len(nodes):
+            next_node = nodes[idx + 1]
+            if next_node.tag == "div" and "list-cards" in (next_node.get("class") or ""):
+                cards: list[CardLink] = []
+                for card in next_node.xpath('./div[contains(@class,"card-div")]'):
+                    anchor = card.xpath('.//a[starts-with(@href,"/wiki/")][1]')
+                    if not anchor:
+                        continue
+                    a = anchor[0]
+                    img = card.xpath('.//img[1]')
+                    cards.append(
+                        CardLink(
+                            title=a.get("title") or extract_text(a),
+                            href=f"{WIKI_BASE}{a.get('href')}",
+                            image_alt=img[0].get("alt") if img else None,
+                            image_url=img[0].get("src") if img else None,
+                        )
+                    )
+                groups.append(CardGroup(heading=heading, cards=cards))
+                idx += 2
+                continue
+        idx += 1
+    return groups
+
+
+def extract_generated_card_pools(rendered_html: str) -> list[dict[str, Any]]:
+    tree = html.fromstring(rendered_html)
+    pools: list[dict[str, Any]] = []
+    for li in tree.xpath('//span[@id="Generated_cards"]/ancestor::h2[1]/following-sibling::ul[1]/li'):
+        description = extract_text(li)
+        runquery_links = [
+            f"{WIKI_BASE}{href}"
+            for href in li.xpath('.//a[contains(@href,"Special:RunQuery/WikiCardPool")]/@href')
+        ]
+        for query_url in runquery_links:
+            cards = extract_card_pool(query_url)
+            pools.append(
+                asdict(
+                    GeneratedCardPool(
+                        description=description,
+                        query_url=query_url,
+                        cards=cards,
+                    )
+                )
+            )
+    return pools
+
+
+def extract_card_pool(query_url: str) -> list[CardLink]:
+    resp = Request(query_url, headers={"User-Agent": USER_AGENT})
+    with urlopen(resp) as handle:
+        rendered_html = handle.read().decode("utf-8")
+    tree = html.fromstring(rendered_html)
+    cards: list[CardLink] = []
+    for card in tree.xpath('//div[contains(@class,"list-cards")]//div[@class="card-div"]'):
+        anchor = card.xpath('.//a[starts-with(@href,"/wiki/")][1]')
+        if not anchor:
+            continue
+        a = anchor[0]
+        img = card.xpath('.//img[1]')
+        cards.append(
+            CardLink(
+                title=a.get("title") or extract_text(a),
+                href=f"{WIKI_BASE}{a.get('href')}",
+                image_alt=img[0].get("alt") if img else None,
+                image_url=img[0].get("src") if img else None,
+            )
+        )
+    return cards
 
 
 def extract_patch_changes(rendered_html: str) -> list[PatchGroup]:
@@ -241,9 +431,60 @@ def render_patch_markdown(groups: Iterable[PatchGroup]) -> str:
     return "\n".join(lines).rstrip() + "\n"
 
 
+def render_result_markdown(result: dict[str, Any]) -> str:
+    lines: list[str] = [f"# {result['page_title']}"]
+
+    if result.get("infobox_fields"):
+        lines.append("\n## Infobox")
+        for field in result["infobox_fields"]:
+            lines.append(f"- **{field['label']}**: {field['value_text']}")
+
+    if result.get("arts"):
+        lines.append("\n## Art variants")
+        for art in result["arts"]:
+            lines.append(f"- **{art['label']}**: {art['file_url']}")
+
+    if result.get("related_cards"):
+        lines.append("\n## Related cards")
+        for group in result["related_cards"]:
+            lines.append(f"### {group['heading']}")
+            for card in group["cards"]:
+                lines.append(f"- [{card['title']}]({card['href']})")
+
+    if result.get("generated_cards"):
+        lines.append("\n## Generated cards")
+        for pool in result["generated_cards"]:
+            lines.append(f"- {pool['description']}")
+            lines.append(f"  - Query: {pool['query_url']}")
+            for card in pool["cards"]:
+                lines.append(f"  - [{card['title']}]({card['href']})")
+
+    if result.get("patch_changes"):
+        lines.append("\n" + render_patch_markdown(
+            PatchGroup(
+                heading=item["heading"],
+                entries=[
+                    PatchEntry(
+                        patch=entry["patch"],
+                        patch_url=entry["patch_url"],
+                        date=entry["date"],
+                        items=entry["items"],
+                    )
+                    for entry in item["entries"]
+                ],
+            )
+            for item in result["patch_changes"]
+        ).rstrip())
+
+    return "\n".join(lines).rstrip() + "\n"
+
+
 def build_result(title: str, download: bool, output_dir: Path) -> dict[str, Any]:
     rendered_html = get_rendered_html(title)
+    infobox_fields = extract_infobox_fields(rendered_html)
     arts = extract_art_variants(rendered_html)
+    related_cards = extract_card_groups(rendered_html, "Related_cards")
+    generated_cards = extract_generated_card_pools(rendered_html)
     patches = extract_patch_changes(rendered_html)
 
     if download:
@@ -255,7 +496,10 @@ def build_result(title: str, download: bool, output_dir: Path) -> dict[str, Any]
     result = {
         "page_title": title,
         "page_url": canonical_page_url(title),
+        "infobox_fields": [asdict(field) for field in infobox_fields],
         "arts": [asdict(art) for art in arts],
+        "related_cards": [asdict(group) for group in related_cards],
+        "generated_cards": generated_cards,
         "patch_changes": [
             {
                 "heading": group.heading,
@@ -282,6 +526,7 @@ def main(argv: list[str] | None = None) -> int:
 
     json_path = output_dir / "result.json"
     md_path = output_dir / "patch-changes.md"
+    result_md_path = output_dir / "result.md"
     json_path.write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
     md_path.write_text(render_patch_markdown(
         PatchGroup(
@@ -298,8 +543,10 @@ def main(argv: list[str] | None = None) -> int:
         )
         for item in result["patch_changes"]
     ), encoding="utf-8")
+    result_md_path.write_text(render_result_markdown(result), encoding="utf-8")
 
     print(json_path)
+    print(result_md_path)
     print(md_path)
     for art in result["arts"]:
         print(art["downloaded_path"] or art["file_url"])
