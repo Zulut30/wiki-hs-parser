@@ -25,6 +25,7 @@
       <nav class="nav" aria-label="Page sections">
         <a href="#versions">Versions</a>
         <a href="#data">Data</a>
+        <a href="#battlegrounds">Battlegrounds</a>
         <a href="#sounds">Sounds</a>
         <a href="#relations">Relations</a>
         <a href="#patches">Patches</a>
@@ -171,6 +172,85 @@
   "voice_actor": "Michael Bell",
   "race": "Old God"
 }</code></pre>
+        </div>
+      </section>
+
+      <section id="battlegrounds" class="section-pad battlegrounds-section" data-reveal>
+        <div class="section-heading">
+          <h2>Battlegrounds examples</h2>
+          <p>
+            Fast lookup resolves Battlegrounds cards by `card_id` or `dbfId`, then `--fetch`
+            parses the real wiki page. These examples show a tavern minion, a buddy, and a hero.
+          </p>
+        </div>
+        <div class="bg-grid">
+          <article class="bg-example-card">
+            <div class="bg-card-media">
+              <img src="assets/cards/bg-blade-collector.png" alt="Blade Collector Battlegrounds card" />
+            </div>
+            <div class="bg-card-copy">
+              <span class="bg-kind">Battlegrounds minion</span>
+              <h3>Blade Collector</h3>
+              <p>Also damages the minions next to whomever this attacks.</p>
+              <dl class="bg-data">
+                <div><dt>Wiki page</dt><dd>Battlegrounds/Blade Collector</dd></div>
+                <div><dt>Card id</dt><dd>BG26_817</dd></div>
+                <div><dt>dbfId</dt><dd>99035</dd></div>
+                <div><dt>Tavern tier</dt><dd>4</dd></div>
+                <div><dt>Stats</dt><dd>3 / 2</dd></div>
+                <div><dt>Minion type</dt><dd>Pirate</dd></div>
+                <div><dt>Race</dt><dd>Human</dd></div>
+                <div><dt>Pool minion</dt><dd>true</dd></div>
+                <div><dt>Golden card</dt><dd>BG26_817_G, dbfId 99036, 6 / 4</dd></div>
+              </dl>
+            </div>
+          </article>
+
+          <article class="bg-example-card buddy">
+            <div class="bg-card-media">
+              <img src="assets/cards/bg-tentacle-of-cthun.png" alt="Tentacle of C'Thun Battlegrounds buddy card" />
+            </div>
+            <div class="bg-card-copy">
+              <span class="bg-kind">Battlegrounds buddy</span>
+              <h3>Tentacle of C'Thun</h3>
+              <p>After a different friendly minion gains stats, gain +1/+1 until next turn.</p>
+              <dl class="bg-data">
+                <div><dt>Wiki page</dt><dd>Battlegrounds/Tentacle of C'Thun</dd></div>
+                <div><dt>Card id</dt><dd>TB_BaconShop_HERO_29_Buddy</dd></div>
+                <div><dt>dbfId</dt><dd>77475</dd></div>
+                <div><dt>Tavern tier</dt><dd>2</dd></div>
+                <div><dt>Stats</dt><dd>3 / 3</dd></div>
+                <div><dt>Buddy flag</dt><dd>BACON_BUDDY=1</dd></div>
+                <div><dt>Owner hero</dt><dd>C'Thun</dd></div>
+                <div><dt>Golden buddy</dt><dd>TB_BaconShop_HERO_29_Buddy_G, dbfId 77728, 6 / 6</dd></div>
+              </dl>
+            </div>
+          </article>
+
+          <article class="bg-example-card hero-example">
+            <div class="bg-card-media">
+              <img src="assets/cards/bg-cthun-hero.png" alt="C'Thun Battlegrounds hero card" />
+            </div>
+            <div class="bg-card-copy">
+              <span class="bg-kind">Battlegrounds hero</span>
+              <h3>C'Thun</h3>
+              <p>
+                C'Thun, the Old God of Madness and Chaos, is everything you fear, and everything
+                you do not yet know to fear.
+              </p>
+              <dl class="bg-data">
+                <div><dt>Wiki page</dt><dd>Battlegrounds/C'Thun</dd></div>
+                <div><dt>Card id</dt><dd>TB_BaconShop_HERO_29</dd></div>
+                <div><dt>dbfId</dt><dd>58535</dd></div>
+                <div><dt>Health</dt><dd>30</dd></div>
+                <div><dt>Armor</dt><dd>20 / 10 lower MMR / 18 Duos</dd></div>
+                <div><dt>Draftable hero</dt><dd>true</dd></div>
+                <div><dt>Hero id</dt><dd>313</dd></div>
+                <div><dt>Buddy dbfId</dt><dd>77475</dd></div>
+                <div><dt>Race</dt><dd>Old God</dd></div>
+              </dl>
+            </div>
+          </article>
         </div>
       </section>
 

@@ -456,6 +456,108 @@ pre {
   gap: 18px;
 }
 
+.bg-grid {
+  display: grid;
+  gap: 18px;
+}
+
+.bg-example-card {
+  display: grid;
+  grid-template-columns: 330px minmax(0, 1fr);
+  gap: 26px;
+  align-items: center;
+  padding: 24px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background:
+    radial-gradient(circle at 14% 0%, rgba(215, 168, 77, 0.16), transparent 26rem),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.022));
+  box-shadow: var(--shadow);
+}
+
+.bg-example-card.buddy {
+  background:
+    radial-gradient(circle at 16% 0%, rgba(142, 180, 200, 0.15), transparent 26rem),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.022));
+}
+
+.bg-example-card.hero-example {
+  background:
+    radial-gradient(circle at 16% 0%, rgba(197, 91, 54, 0.14), transparent 26rem),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.022));
+}
+
+.bg-card-media {
+  display: grid;
+  place-items: center;
+  min-height: 350px;
+  border: 1px solid rgba(226, 203, 160, 0.13);
+  border-radius: 18px;
+  background: rgba(0, 0, 0, 0.16);
+}
+
+.bg-card-media img {
+  max-height: 330px;
+  object-fit: contain;
+  filter: drop-shadow(0 18px 18px rgba(0, 0, 0, 0.42));
+}
+
+.bg-kind {
+  display: inline-flex;
+  margin-bottom: 12px;
+  color: var(--gold-soft);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+
+.bg-card-copy h3 {
+  margin: 0;
+  font-family: "Fraunces", Georgia, serif;
+  font-size: clamp(2.2rem, 4vw, 4.4rem);
+  line-height: 0.96;
+  letter-spacing: -0.055em;
+}
+
+.bg-card-copy p {
+  max-width: 720px;
+  margin: 14px 0 22px;
+  color: var(--muted);
+  font-size: 1.05rem;
+  line-height: 1.65;
+}
+
+.bg-data {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+}
+
+.bg-data div {
+  min-width: 0;
+  padding: 13px 14px;
+  border: 1px solid rgba(226, 203, 160, 0.12);
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.16);
+}
+
+.bg-data dt {
+  color: var(--faint);
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.bg-data dd {
+  margin: 5px 0 0;
+  color: var(--text);
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
 .sound-group {
   padding: 22px;
   border-radius: var(--radius-md);
@@ -689,7 +791,8 @@ audio {
 
   .version-grid,
   .art-row,
-  .sound-groups {
+  .sound-groups,
+  .bg-example-card {
     grid-template-columns: 1fr;
   }
 
@@ -761,8 +864,17 @@ audio {
   }
 
   .data-table div,
-  .sound-row {
+  .sound-row,
+  .bg-data {
     grid-template-columns: 1fr;
+  }
+
+  .bg-card-media {
+    min-height: 300px;
+  }
+
+  .bg-card-media img {
+    max-height: 280px;
   }
 
   .mini-card-strip img {

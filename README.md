@@ -54,6 +54,7 @@ The one-page static demo lives in `docs/` and shows the parser output on the `C'
 - related card codes
 - external links
 - patch changes
+- Battlegrounds examples: tavern minion, buddy, and hero
 
 Open locally:
 
@@ -201,6 +202,8 @@ For Battlegrounds pages, `--fetch` also normalizes optional infobox fields into 
 
 - `armor` and `armor_text`
 - `battlegrounds_tier`
+- `battlegrounds_buddy`
+- `battlegrounds_pool_minion`
 - `minion_type`
 - `hero_description`
 - `hero_id`

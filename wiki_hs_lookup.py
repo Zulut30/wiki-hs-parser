@@ -18,7 +18,7 @@ from wiki_hs_parser import (
 )
 
 
-INDEX_VERSION = 1
+INDEX_VERSION = 2
 QUERY_LIMIT = 500
 SCOPES = ("card", "bg-minion", "bg-hero")
 
@@ -67,6 +67,7 @@ SOURCE_CONFIGS: dict[str, dict[str, str]] = {
                 "CardTag.isCollectible=is_collectible",
                 "CardTagBg.tier=tier",
                 "CardTagBg.isPoolMinion=is_pool_minion",
+                "CardTagBg.isBuddy=is_buddy",
                 "CardTagBg.normalDbfId=normal_dbf_id",
                 "CardTagBg.premiumDbfId=premium_dbf_id",
                 "CardTagBg.bannedInSolo=banned_in_solo",
@@ -184,6 +185,7 @@ def entry_details(row: dict[str, Any]) -> dict[str, Any]:
         "is_collectible",
         "is_elite",
         "is_pool_minion",
+        "is_buddy",
         "banned_in_solo",
         "banned_in_duos",
         "is_draftable_hero",
