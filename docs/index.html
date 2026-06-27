@@ -26,6 +26,7 @@
         <a href="#versions">Versions</a>
         <a href="#data">Data</a>
         <a href="#battlegrounds">Battlegrounds</a>
+        <a href="#export">Export</a>
         <a href="#sounds">Sounds</a>
         <a href="#relations">Relations</a>
         <a href="#patches">Patches</a>
@@ -180,7 +181,8 @@
           <h2>Battlegrounds examples</h2>
           <p>
             Fast lookup resolves Battlegrounds cards by `card_id` or `dbfId`, then `--fetch`
-            parses the real wiki page. These examples show a tavern minion, a buddy, and a hero.
+            parses the real wiki page. These examples show a tavern minion, a buddy, a hero,
+            availability notes, BG art, sounds, related cards, and hero skins.
           </p>
         </div>
         <div class="bg-grid">
@@ -200,6 +202,9 @@
                 <div><dt>Stats</dt><dd>3 / 2</dd></div>
                 <div><dt>Minion type</dt><dd>Pirate</dd></div>
                 <div><dt>Race</dt><dd>Human</dd></div>
+                <div><dt>Availability</dt><dd>Available; Pirate lobbies only</dd></div>
+                <div><dt>Wiki tags</dt><dd>Attacking-related, Positional effect</dd></div>
+                <div><dt>Sounds</dt><dd>Play, Attack, Death</dd></div>
                 <div><dt>Pool minion</dt><dd>true</dd></div>
                 <div><dt>Golden card</dt><dd>BG26_817_G, dbfId 99036, 6 / 4</dd></div>
               </dl>
@@ -222,6 +227,7 @@
                 <div><dt>Stats</dt><dd>3 / 3</dd></div>
                 <div><dt>Buddy flag</dt><dd>BACON_BUDDY=1</dd></div>
                 <div><dt>Owner hero</dt><dd>C'Thun</dd></div>
+                <div><dt>Sounds</dt><dd>Play, Death</dd></div>
                 <div><dt>Golden buddy</dt><dd>TB_BaconShop_HERO_29_Buddy_G, dbfId 77728, 6 / 6</dd></div>
               </dl>
             </div>
@@ -251,6 +257,162 @@
               </dl>
             </div>
           </article>
+        </div>
+
+        <div class="bg-art-grid" aria-label="Battlegrounds full art examples">
+          <figure>
+            <img src="assets/art/bg-blade-collector-full.jpg" alt="Blade Collector full art" />
+            <figcaption>Blade Collector full art from `gallery_images`</figcaption>
+          </figure>
+          <figure>
+            <img src="assets/art/bg-tentacle-of-cthun-full.jpg" alt="Tentacle of C'Thun full art" />
+            <figcaption>Tentacle of C'Thun full art from `gallery_images`</figcaption>
+          </figure>
+          <figure>
+            <img src="assets/art/bg-deathwing-full.jpg" alt="Deathwing full art" />
+            <figcaption>Deathwing full art from `gallery_images`</figcaption>
+          </figure>
+        </div>
+
+        <article class="bg-detail-panel" aria-label="Detailed Deathwing Battlegrounds hero extraction">
+          <div class="bg-detail-copy">
+            <span class="bg-kind">Detailed BG hero</span>
+            <h3>Deathwing</h3>
+            <p>
+              This is the same full-page parser applied to `Battlegrounds/Deathwing`: hero id,
+              normal and Duos armor, availability, race, character data, related cards, hero skins,
+              gallery art, external links, and patch changes are all exported.
+            </p>
+            <dl class="bg-data compact-data">
+              <div><dt>Card id</dt><dd>TB_BaconShop_HERO_52</dd></div>
+              <div><dt>dbfId</dt><dd>60369</dd></div>
+              <div><dt>Hero id</dt><dd>343</dd></div>
+              <div><dt>Health</dt><dd>30</dd></div>
+              <div><dt>Armor</dt><dd>18 normal / 16 Duos</dd></div>
+              <div><dt>Hero power id</dt><dd>TB_BaconShop_HP_061 / dbfId 61406</dd></div>
+              <div><dt>Buddy id</dt><dd>TB_BaconShop_HERO_52_Buddy / dbfId 77782</dd></div>
+              <div><dt>Availability</dt><dd>This hero is currently available for selection.</dd></div>
+              <div><dt>Race</dt><dd>Dragon</dd></div>
+              <div><dt>Character</dt><dd>Deathwing, Male</dd></div>
+              <div><dt>Draftable</dt><dd>BACON_HERO_CAN_BE_DRAFTED=1</dd></div>
+              <div><dt>Patch history</dt><dd>Card changes and bug fixes from 2020-2025</dd></div>
+            </dl>
+          </div>
+          <div class="bg-detail-media">
+            <img class="deathwing-card" src="assets/cards/bg-deathwing-hero.png" alt="Deathwing Battlegrounds hero card" />
+            <img class="deathwing-art" src="assets/art/bg-deathwing-full.jpg" alt="Deathwing full art" />
+          </div>
+        </article>
+
+        <div class="bg-related-grid">
+          <article>
+            <h3>Deathwing related cards</h3>
+            <div class="related-card-row">
+              <img src="assets/cards/bg-deathwing-hero-power.png" alt="ALL Will Burn! hero power" />
+              <div>
+                <strong>TB_BaconShop_HP_061</strong>
+                <span>ALL Will Burn! - Tied Hero Power</span>
+              </div>
+            </div>
+            <div class="related-card-row">
+              <img src="assets/cards/bg-sinestra-buddy.png" alt="Sinestra buddy card" />
+              <div>
+                <strong>TB_BaconShop_HERO_52_Buddy</strong>
+                <span>Sinestra - Buddy</span>
+              </div>
+            </div>
+          </article>
+          <article>
+            <h3>BG minion sounds</h3>
+            <p class="small-muted">
+              Blade Collector has a `Sounds` section, so the parser emits direct `.wav` URLs with
+              descriptions and groups.
+            </p>
+            <div class="sound-row compact-sound">
+              <div><strong>VO_BG25_018_Male_Human_Play_01.wav</strong><span>&lt;summon sound&gt;</span></div>
+              <audio controls preload="none" src="https://hearthstone.wiki.gg/images/VO_BG25_018_Male_Human_Play_01.wav?5f99b2"></audio>
+            </div>
+            <div class="sound-row compact-sound">
+              <div><strong>VO_BG25_018_Male_Human_Attack_01.wav</strong><span>&lt;attack sound&gt;</span></div>
+              <audio controls preload="none" src="https://hearthstone.wiki.gg/images/VO_BG25_018_Male_Human_Attack_01.wav?2b39a0"></audio>
+            </div>
+            <div class="sound-row compact-sound">
+              <div><strong>VO_BG25_018_Male_Human_Death_01.wav</strong><span>&lt;death sound&gt;</span></div>
+              <audio controls preload="none" src="https://hearthstone.wiki.gg/images/VO_BG25_018_Male_Human_Death_01.wav?850de7"></audio>
+            </div>
+          </article>
+        </div>
+
+        <div class="skin-strip" aria-label="Deathwing hero skins">
+          <div>
+            <h3>Deathwing hero skins</h3>
+            <p>The `Hero skins` section is parsed as card links with card ids and preview images.</p>
+          </div>
+          <img src="assets/cards/bg-deathwing-skin-a.png" alt="Deathwing the Black skin" />
+          <img src="assets/cards/bg-deathwing-skin-b2.png" alt="Fire Breather Deathwing skin" />
+          <img src="assets/cards/bg-deathwing-skin-c.png" alt="Deathwing, Risen skin" />
+          <img src="assets/cards/bg-deathwing-skin-d.png" alt="Jailer Deathwing skin" />
+          <img src="assets/cards/bg-deathwing-skin-e.png" alt="Deathwing the Dreamer skin" />
+          <img src="assets/cards/bg-deathwing-skin-f.png" alt="Neltharion the Earth-Warder skin" />
+          <img src="assets/cards/bg-deathwing-skin-h.png" alt="Deathwing Triumphant skin" />
+        </div>
+
+        <pre class="json-panel bg-json-panel"><code>{
+  "card_data": {
+    "name": "Deathwing",
+    "card_code": "TB_BaconShop_HERO_52",
+    "dbf_id": 60369,
+    "health": 30,
+    "armor": 18,
+    "duos_armor": 16,
+    "hero_id": 343,
+    "hero_power_dbf_id": 61406,
+    "buddy_dbf_id": 77782,
+    "battlegrounds_draftable_hero": true,
+    "race": "Dragon",
+    "character": "Deathwing",
+    "gender": "Male",
+    "availability_notes": ["This hero is currently available for selection."]
+  },
+  "related_cards": ["TB_BaconShop_HP_061", "TB_BaconShop_HERO_52_Buddy"],
+  "hero_skins": [
+    "TB_BaconShop_HERO_52_SKIN_A",
+    "TB_BaconShop_HERO_52_SKIN_B2",
+    "TB_BaconShop_HERO_52_SKIN_C",
+    "TB_BaconShop_HERO_52_SKIN_D",
+    "TB_BaconShop_HERO_52_SKIN_E",
+    "TB_BaconShop_HERO_52_SKIN_F",
+    "TB_BaconShop_HERO_52_SKIN_H"
+  ]
+}</code></pre>
+      </section>
+
+      <section id="export" class="section-pad export-section" data-reveal>
+        <div class="section-heading split">
+          <div>
+            <h2>Safe database export</h2>
+            <p>
+              `wiki_hs_export.py` is made for your site backend: it builds the Cargo lookup index,
+              deduplicates wiki pages, caches full parser results, then writes JSONL and optional
+              SQLite without hammering wiki.gg.
+            </p>
+          </div>
+          <a class="button compact" href="https://github.com/Zulut30/wiki-hs-parser/blob/codex/wiki-hs-parser/wiki_hs_export.py">Open script</a>
+        </div>
+        <div class="export-grid">
+          <pre class="json-panel"><code>python wiki_hs_export.py ^
+  --scope bg-hero ^
+  --output-jsonl out/export/bg-heroes.jsonl ^
+  --output-sqlite out/export/bg-heroes.sqlite ^
+  --cache-dir out/export-cache ^
+  --delay-seconds 1.2 ^
+  --jitter-seconds 0.4</code></pre>
+          <div class="export-notes">
+            <div><strong>Fast lookup first</strong><span>Uses `Special:RunQuery/Card`, `BG/Minion`, and `BG/Hero` through Cargo API batches.</span></div>
+            <div><strong>Polite fetches</strong><span>One request per unique page, with cache, retry, backoff, delay, and jitter.</span></div>
+            <div><strong>DB ready</strong><span>Stores page payloads plus lookup rows keyed by `scope`, `card_id`, and `dbf_id`.</span></div>
+            <div><strong>Safe testing</strong><span>Use `--max-pages 10` or `--index-only` before a full export.</span></div>
+          </div>
         </div>
       </section>
 

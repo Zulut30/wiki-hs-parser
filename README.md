@@ -1,6 +1,6 @@
 # wiki-hs-parser
 
-Small CLI utility for Hearthstone Wiki pages, demonstrated with `C'Thun` and `Mountain Map`.
+Small CLI utility for Hearthstone Wiki pages, demonstrated with `C'Thun`, `Mountain Map`, and Battlegrounds pages such as `Battlegrounds/Deathwing`.
 
 It extracts:
 
@@ -9,14 +9,17 @@ It extracts:
 - direct image URLs for each art variant
 - downloaded image files for each art variant
 - related cards grouped by section
+- Battlegrounds hero skins grouped by section
+- full-art/gallery image files from the `Gallery` section
 - generated card pools and the cards returned by each `Special:RunQuery/WikiCardPool` page
-- artist, keywords, availability, voice actor, race, dbfId, and card id stats
+- artist, keywords, page availability, voice actor, race, dbfId, card id, hero id, armor, Duos armor, and BG tags
 - sound recordings from the `Sounds` section
 - external links from the `External links` section
 - `Patch changes` from the page
 - fast `card_id` / `dbfId` lookup for cards, Battlegrounds minions, and Battlegrounds heroes
+- safe JSONL/SQLite export for site databases
 
-`related_cards` and `generated_cards` store `card_code` values such as `OG_281` and `CORE_ULD_723`.
+`related_cards`, `generated_cards`, and `hero_skins` store `card_code` values such as `OG_281`, `CORE_ULD_723`, and `TB_BaconShop_HERO_52_SKIN_A`.
 
 ## Requirements
 
@@ -52,6 +55,7 @@ The one-page static demo lives in `docs/` and shows the parser output on the `C'
 - normalized `card_data`
 - playable sound effects
 - related card codes
+- Battlegrounds hero availability, minion availability, full art, sounds, related cards, and hero skins
 - external links
 - patch changes
 - Battlegrounds examples: tavern minion, buddy, and hero
@@ -88,6 +92,24 @@ Fast lookup by Battlegrounds hero id and then parse the found page:
 python wiki_hs_lookup.py --id TB_BaconShop_HERO_29 --scope bg-hero --fetch --no-download --output-dir out/bg-cthun
 ```
 
+Detailed Battlegrounds hero example with related hero power, buddy, hero skins, availability, and gallery art:
+
+```bash
+python wiki_hs_lookup.py --id TB_BaconShop_HERO_52 --scope bg-hero --fetch --no-download --output-dir out/bg-deathwing
+```
+
+Safe export for a website database:
+
+```bash
+python wiki_hs_export.py --scope bg-hero --output-jsonl out/export/bg-heroes.jsonl --output-sqlite out/export/bg-heroes.sqlite --cache-dir out/export-cache --delay-seconds 1.2 --jitter-seconds 0.4
+```
+
+Test export without fetching every page:
+
+```bash
+python wiki_hs_export.py --scope bg-minion --max-pages 10 --output-jsonl out/export/bg-minions-sample.jsonl --index-only
+```
+
 Each run writes:
 
 - `out/<slug>/result.json`
@@ -101,6 +123,12 @@ Each run writes:
 - `out/wiki-card-index.json`
 - `result.json`, `result.md`, and `patch-changes.md` when `--fetch` is used
 
+`wiki_hs_export.py` writes:
+
+- JSONL records containing lookup rows plus the full parser payload
+- optional SQLite tables: `pages` and `lookup_cards`
+- per-page cache files under `out/export-cache`
+
 ## What You Get
 
 The JSON output contains these top-level keys:
@@ -111,6 +139,9 @@ The JSON output contains these top-level keys:
 - `infobox_fields`
 - `arts`
 - `related_cards`
+- `hero_skins`
+- `page_availability`
+- `gallery_images`
 - `generated_cards`
 - `sounds`
 - `external_links`
@@ -132,6 +163,25 @@ Supported scopes:
 - `bg-minion`: Battlegrounds minion cards from `Special:RunQuery/BG/Minion`
 - `bg-hero`: Battlegrounds heroes from `Special:RunQuery/BG/Hero`
 - `all`: all three scopes
+
+## Safe Site Export
+
+Use `wiki_hs_export.py` when your site backend needs to fill a local database from the wiki.
+
+The exporter is intentionally conservative:
+
+- `--scope` is required, so a full export is always explicit.
+- The Cargo lookup index is fetched in API batches instead of scraping search pages.
+- Multiple card ids pointing to the same wiki page are deduplicated before page fetches.
+- Full parser results are cached per page under `--cache-dir`.
+- Network page fetches use `--delay-seconds`, `--jitter-seconds`, retries, and exponential backoff.
+- `--max-pages` lets you test on a small sample.
+- `--index-only` exports fast lookup rows without fetching full pages.
+
+SQLite schema:
+
+- `pages`: one row per wiki page with the complete JSON payload.
+- `lookup_cards`: one row per exported lookup card keyed by `scope`, `card_id`, and `dbf_id`.
 
 Example lookup result for `OG_280`:
 
@@ -201,13 +251,99 @@ Use `--fetch` when the app needs the full parser result, including art variants,
 For Battlegrounds pages, `--fetch` also normalizes optional infobox fields into `card_data`:
 
 - `armor` and `armor_text`
+- `duos_armor`
+- `lower_mmr_armor`
+- `hero_power_dbf_id`
+- `buddy_dbf_id`
 - `battlegrounds_tier`
 - `battlegrounds_buddy`
 - `battlegrounds_pool_minion`
+- `battlegrounds_draftable_hero`
+- `battlegrounds_premium_dbf_id`
 - `minion_type`
+- `character`
+- `gender`
 - `hero_description`
 - `hero_id`
+- `availability_notes` from the page `Availability` section
 - `alternate_card` for linked golden/alternate card stats from `other_*` infobox fields
+
+Example detailed Battlegrounds hero data for `Deathwing`:
+
+```json
+{
+  "card_data": {
+    "name": "Deathwing",
+    "card_code": "TB_BaconShop_HERO_52",
+    "dbf_id": 60369,
+    "health": 30,
+    "armor": 18,
+    "armor_text": "18 16 (Duos)",
+    "duos_armor": 16,
+    "hero_power_dbf_id": 61406,
+    "buddy_dbf_id": 77782,
+    "battlegrounds_draftable_hero": true,
+    "race": "Dragon",
+    "character": "Deathwing",
+    "gender": "Male",
+    "hero_id": 343,
+    "availability_notes": ["This hero is currently available for selection."]
+  },
+  "related_cards": [
+    {
+      "heading": "Related cards",
+      "cards": [
+        {"card_code": "TB_BaconShop_HP_061", "caption": "Tied Hero Power"},
+        {"card_code": "TB_BaconShop_HERO_52_Buddy", "caption": "Buddy"}
+      ]
+    }
+  ],
+  "hero_skins": [
+    {
+      "heading": "Hero skins",
+      "cards": [
+        {"card_code": "TB_BaconShop_HERO_52_SKIN_A"},
+        {"card_code": "TB_BaconShop_HERO_52_SKIN_B2"},
+        {"card_code": "TB_BaconShop_HERO_52_SKIN_C"},
+        {"card_code": "TB_BaconShop_HERO_52_SKIN_D"},
+        {"card_code": "TB_BaconShop_HERO_52_SKIN_E"},
+        {"card_code": "TB_BaconShop_HERO_52_SKIN_F"},
+        {"card_code": "TB_BaconShop_HERO_52_SKIN_H"}
+      ]
+    }
+  ],
+  "gallery_images": [
+    {
+      "caption": "Deathwing, full art",
+      "file_title": "File:Deathwing,_Mad_Aspect_full.jpg"
+    }
+  ]
+}
+```
+
+Example Battlegrounds minion availability and sounds for `Blade Collector`:
+
+```json
+{
+  "card_data": {
+    "card_code": "BG26_817",
+    "battlegrounds_pool_minion": true,
+    "battlegrounds_premium_dbf_id": 99036,
+    "minion_type": "Pirate",
+    "race": "Human",
+    "wiki_tags": ["Attacking-related", "Positional effect"],
+    "availability_notes": [
+      "This minion is currently available in games.",
+      "This minion can only appear in lobbies where Pirates are present."
+    ]
+  },
+  "sounds": [
+    {"heading": "Play"},
+    {"heading": "Attack"},
+    {"heading": "Death"}
+  ]
+}
+```
 
 Example card data for `C'Thun`:
 

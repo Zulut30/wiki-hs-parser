@@ -37,6 +37,7 @@ class CardLink:
     title: str
     href: str
     card_code: str | None = None
+    caption: str | None = None
     image_alt: str | None = None
     image_url: str | None = None
 
@@ -97,6 +98,21 @@ class ExternalLink:
     url: str
 
 
+@dataclass
+class AvailabilityEntry:
+    text: str
+    links: list[CardLink] = field(default_factory=list)
+
+
+@dataclass
+class GalleryImage:
+    caption: str
+    file_title: str | None
+    file_url: str | None
+    thumb_url: str | None
+    file_page_url: str | None
+
+
 _CARD_CODE_CACHE: dict[str, str | None] = {}
 
 
@@ -131,6 +147,18 @@ def normalize_title(value: str) -> str:
 def canonical_page_url(title: str) -> str:
     safe = quote(title.replace(" ", "_"), safe="()!,-./")
     return f"{WIKI_BASE}/wiki/{safe}"
+
+
+def absolute_wiki_url(value: str | None) -> str | None:
+    if not value:
+        return None
+    if value.startswith("http://") or value.startswith("https://"):
+        return value
+    if value.startswith("//"):
+        return f"https:{value}"
+    if value.startswith("/"):
+        return f"{WIKI_BASE}{value}"
+    return value
 
 
 def mediawiki_query(params: dict[str, Any]) -> dict[str, Any]:
@@ -198,6 +226,11 @@ def split_full_tags(value: str) -> list[str]:
     return [part.strip() for part in value.split() if part.strip()]
 
 
+def full_tag_int(value: str, tag: str) -> int | None:
+    match = re.search(rf"(?:^|\s){re.escape(tag)}=(-?\d+)(?:\s|$)", value or "")
+    return int(match.group(1)) if match else None
+
+
 def parse_int(value: str) -> int | None:
     match = re.search(r"-?\d+", value or "")
     return int(match.group(0)) if match else None
@@ -262,6 +295,7 @@ def derive_card_data(fields: list[InfoboxField], arts: list[ArtVariant]) -> dict
         or "Battlecry:" in full_text
         or bool(re.search(r"\bBATTLECRY=1\b", full_tags_raw))
     )
+    armor = parse_int(armor_text) or full_tag_int(full_tags_raw, "ARMOR")
 
     return {
         "name": field_value(fields, "name"),
@@ -278,11 +312,17 @@ def derive_card_data(fields: list[InfoboxField], arts: list[ArtVariant]) -> dict
         "cost": parse_int(field_value(fields, "manaCost")),
         "attack": parse_int(field_value(fields, "attack")),
         "health": parse_int(field_value(fields, "health")),
-        "armor": parse_int(armor_text),
+        "armor": armor,
         "armor_text": armor_text,
+        "duos_armor": full_tag_int(full_tags_raw, "3206"),
+        "lower_mmr_armor": full_tag_int(full_tags_raw, "2954"),
+        "hero_power_dbf_id": full_tag_int(full_tags_raw, "HERO_POWER"),
+        "buddy_dbf_id": full_tag_int(full_tags_raw, "BACON_SKIN_PARENT_ID"),
         "battlegrounds_tier": parse_int(field_value(fields, "bgTier")),
         "battlegrounds_buddy": bool(re.search(r"\bBACON_BUDDY=1\b", full_tags_raw)),
         "battlegrounds_pool_minion": bool(re.search(r"\bIS_BACON_POOL_MINION=1\b", full_tags_raw)),
+        "battlegrounds_draftable_hero": bool(re.search(r"\bBACON_HERO_CAN_BE_DRAFTED=1\b", full_tags_raw)),
+        "battlegrounds_premium_dbf_id": full_tag_int(full_tags_raw, "1429"),
         "minion_type": field_value(fields, "race"),
         "card_set": field_value(fields, "derived_cardSet"),
         "collectible": collectible,
@@ -301,6 +341,8 @@ def derive_card_data(fields: list[InfoboxField], arts: list[ArtVariant]) -> dict
         "flavor": field_value(fields, "flavor"),
         "voice_actor": field_value(fields, "custom_voiceActor"),
         "race": field_value(fields, "custom_race"),
+        "character": field_value(fields, "custom_charac"),
+        "gender": field_value(fields, "custom_gender"),
         "hero_description": field_value(fields, "hero_description"),
         "hero_id": parse_int(field_value(fields, "hero_id")),
         "alternate_card": derive_alternate_card_data(fields),
@@ -343,7 +385,7 @@ def element_links(node: html.HtmlElement) -> list[CardLink]:
                 href=f"{WIKI_BASE}{href}",
                 card_code=resolve_card_code(f"{WIKI_BASE}{href}"),
                 image_alt=image_alt,
-                image_url=f"{WIKI_BASE}{image_url}" if image_url and image_url.startswith("/") else image_url,
+                image_url=absolute_wiki_url(image_url),
             )
         )
     return links
@@ -543,40 +585,110 @@ def extract_external_links(rendered_html: str) -> list[ExternalLink]:
     return links
 
 
+def extract_card_from_div(card: html.HtmlElement) -> CardLink | None:
+    anchor = card.xpath('.//a[starts-with(@href,"/wiki/") and not(starts-with(@href,"/wiki/File:"))][1]')
+    if not anchor:
+        return None
+    a = anchor[0]
+    href = a.get("href") or ""
+    img = card.xpath('.//img[1]')
+    caption_node = card.xpath('.//*[contains(concat(" ", normalize-space(@class), " "), " card-caption ")][1]')
+    caption = extract_text(caption_node[0]) if caption_node else None
+    url = f"{WIKI_BASE}{href}"
+    return CardLink(
+        title=a.get("title") or extract_text(a),
+        href=url,
+        card_code=resolve_card_code(url),
+        caption=caption,
+        image_alt=img[0].get("alt") if img else None,
+        image_url=absolute_wiki_url(img[0].get("src")) if img else None,
+    )
+
+
+def extract_card_divs(node: html.HtmlElement) -> list[CardLink]:
+    cards: list[CardLink] = []
+    for card in node.xpath('.//div[contains(concat(" ", normalize-space(@class), " "), " card-div ")]'):
+        card_link = extract_card_from_div(card)
+        if card_link:
+            cards.append(card_link)
+    return cards
+
+
 def extract_card_groups(rendered_html: str, section_id: str) -> list[CardGroup]:
     tree = html.fromstring(rendered_html)
     groups: list[CardGroup] = []
     nodes = iter_section_nodes(tree, section_id)
-    idx = 0
-    while idx < len(nodes):
-        node = nodes[idx]
-        heading = ""
+    current_heading = section_id.replace("_", " ")
+    for node in nodes:
+        if not isinstance(node.tag, str):
+            continue
         if node.tag in {"h3", "h4"}:
-            heading = extract_text(node)
-        if heading and idx + 1 < len(nodes):
-            next_node = nodes[idx + 1]
-            if next_node.tag == "div" and "list-cards" in (next_node.get("class") or ""):
-                cards: list[CardLink] = []
-                for card in next_node.xpath('./div[contains(@class,"card-div")]'):
-                    anchor = card.xpath('.//a[starts-with(@href,"/wiki/")][1]')
-                    if not anchor:
-                        continue
-                    a = anchor[0]
-                    img = card.xpath('.//img[1]')
-                    cards.append(
-                        CardLink(
-                            title=a.get("title") or extract_text(a),
-                            href=f"{WIKI_BASE}{a.get('href')}",
-                            card_code=resolve_card_code(f"{WIKI_BASE}{a.get('href')}"),
-                            image_alt=img[0].get("alt") if img else None,
-                            image_url=img[0].get("src") if img else None,
-                        )
-                    )
-                groups.append(CardGroup(heading=heading, cards=cards))
-                idx += 2
-                continue
-        idx += 1
+            current_heading = extract_text(node) or current_heading
+            continue
+        has_list_cards = (
+            " list-cards " in f" {node.get('class') or ''} "
+            or bool(node.xpath('.//*[contains(concat(" ", normalize-space(@class), " "), " list-cards ")]'))
+        )
+        if not has_list_cards:
+            continue
+        cards = extract_card_divs(node)
+        if cards:
+            groups.append(CardGroup(heading=current_heading, cards=cards))
     return groups
+
+
+def extract_availability(rendered_html: str) -> list[AvailabilityEntry]:
+    tree = html.fromstring(rendered_html)
+    entries: list[AvailabilityEntry] = []
+    for node in iter_section_nodes(tree, "Availability"):
+        if not isinstance(node.tag, str):
+            continue
+        if node.tag == "ul":
+            for li in node.xpath("./li"):
+                text = extract_text(li)
+                if text:
+                    entries.append(AvailabilityEntry(text=text, links=element_links(li)))
+        elif node.tag == "p":
+            text = extract_text(node)
+            if text:
+                entries.append(AvailabilityEntry(text=text, links=element_links(node)))
+    return entries
+
+
+def extract_gallery_images(rendered_html: str) -> list[GalleryImage]:
+    tree = html.fromstring(rendered_html)
+    images: list[GalleryImage] = []
+    for node in iter_section_nodes(tree, "Gallery"):
+        if not isinstance(node.tag, str):
+            continue
+        for item in node.xpath('.//li[contains(concat(" ", normalize-space(@class), " "), " gallerybox ")]'):
+            link = item.xpath('.//a[starts-with(@href,"/wiki/File:")][1]')
+            img = item.xpath('.//img[1]')
+            caption_node = item.xpath('.//*[contains(concat(" ", normalize-space(@class), " "), " gallerytext ")]')
+            caption = extract_text(caption_node[0]) if caption_node else (img[0].get("alt") if img else "")
+            file_title = None
+            file_url = None
+            file_page_url = None
+            if link:
+                href = link[0].get("href") or ""
+                file_page_url = absolute_wiki_url(href)
+                file_title = unquote(href.split("/wiki/", 1)[1]) if "/wiki/" in href else None
+                if file_title:
+                    try:
+                        file_url = get_file_info(file_title).get("url")
+                    except Exception:
+                        file_url = None
+            thumb_url = absolute_wiki_url(img[0].get("src")) if img else None
+            images.append(
+                GalleryImage(
+                    caption=caption,
+                    file_title=file_title,
+                    file_url=file_url,
+                    thumb_url=thumb_url,
+                    file_page_url=file_page_url,
+                )
+            )
+    return images
 
 
 def extract_generated_card_pools(rendered_html: str) -> list[dict[str, Any]]:
@@ -608,19 +720,22 @@ def extract_card_pool(query_url: str) -> list[CardLink]:
         rendered_html = handle.read().decode("utf-8")
     tree = html.fromstring(rendered_html)
     cards: list[CardLink] = []
-    for card in tree.xpath('//div[contains(@class,"list-cards")]//div[@class="card-div"]'):
+    for card in tree.xpath('//div[contains(concat(" ", normalize-space(@class), " "), " list-cards ")]//div[contains(concat(" ", normalize-space(@class), " "), " card-div ")]'):
         anchor = card.xpath('.//a[starts-with(@href,"/wiki/")][1]')
         if not anchor:
             continue
         a = anchor[0]
+        href = absolute_wiki_url(a.get("href")) or ""
         img = card.xpath('.//img[1]')
+        caption_node = card.xpath('.//*[contains(concat(" ", normalize-space(@class), " "), " card-caption ")][1]')
         cards.append(
             CardLink(
                 title=a.get("title") or extract_text(a),
-                href=f"{WIKI_BASE}{a.get('href')}",
-                card_code=resolve_card_code(f"{WIKI_BASE}{a.get('href')}"),
+                href=href,
+                card_code=resolve_card_code(href),
+                caption=extract_text(caption_node[0]) if caption_node else None,
                 image_alt=img[0].get("alt") if img else None,
-                image_url=img[0].get("src") if img else None,
+                image_url=absolute_wiki_url(img[0].get("src")) if img else None,
             )
         )
     return cards
@@ -737,15 +852,22 @@ def render_result_markdown(result: dict[str, Any]) -> str:
             "health",
             "armor",
             "armor_text",
+            "duos_armor",
+            "lower_mmr_armor",
+            "hero_power_dbf_id",
+            "buddy_dbf_id",
             "battlegrounds_tier",
             "battlegrounds_buddy",
             "battlegrounds_pool_minion",
+            "battlegrounds_draftable_hero",
+            "battlegrounds_premium_dbf_id",
             "minion_type",
             "card_set",
             "collectible",
             "non_collectible",
             "elite",
             "availability",
+            "availability_notes",
             "formats",
             "exclusions",
             "wiki_mechanics",
@@ -754,6 +876,8 @@ def render_result_markdown(result: dict[str, Any]) -> str:
             "flavor",
             "voice_actor",
             "race",
+            "character",
+            "gender",
             "hero_description",
             "hero_id",
             "alternate_card",
@@ -773,13 +897,28 @@ def render_result_markdown(result: dict[str, Any]) -> str:
             artist = f" by {art['artist']}" if art.get("artist") else ""
             lines.append(f"- **{art['label']}**{artist}: {art['file_url']}")
 
+    if result.get("page_availability"):
+        lines.append("\n## Page availability")
+        for entry in result["page_availability"]:
+            lines.append(f"- {entry['text']}")
+
     if result.get("related_cards"):
         lines.append("\n## Related cards")
         for group in result["related_cards"]:
             lines.append(f"### {group['heading']}")
             for card in group["cards"]:
                 code = f" `{card['card_code']}`" if card.get("card_code") else ""
-                lines.append(f"- [{card['title']}]({card['href']}){code}")
+                caption = f" ({card['caption']})" if card.get("caption") else ""
+                lines.append(f"- [{card['title']}]({card['href']}){code}{caption}")
+
+    if result.get("hero_skins"):
+        lines.append("\n## Hero skins")
+        for group in result["hero_skins"]:
+            lines.append(f"### {group['heading']}")
+            for card in group["cards"]:
+                code = f" `{card['card_code']}`" if card.get("card_code") else ""
+                caption = f" ({card['caption']})" if card.get("caption") else ""
+                lines.append(f"- [{card['title']}]({card['href']}){code}{caption}")
 
     if result.get("generated_cards"):
         lines.append("\n## Generated cards")
@@ -788,7 +927,17 @@ def render_result_markdown(result: dict[str, Any]) -> str:
             lines.append(f"  - Query: {pool['query_url']}")
             for card in pool["cards"]:
                 code = f" `{card['card_code']}`" if card.get("card_code") else ""
-                lines.append(f"  - [{card['title']}]({card['href']}){code}")
+                caption = f" ({card['caption']})" if card.get("caption") else ""
+                lines.append(f"  - [{card['title']}]({card['href']}){code}{caption}")
+
+    if result.get("gallery_images"):
+        lines.append("\n## Gallery images")
+        for image in result["gallery_images"]:
+            target_url = image.get("file_url") or image.get("thumb_url") or image.get("file_page_url")
+            if target_url:
+                lines.append(f"- [{image['caption']}]({target_url})")
+            else:
+                lines.append(f"- {image['caption']}")
 
     if result.get("sounds"):
         lines.append("\n## Sounds")
@@ -829,10 +978,18 @@ def build_result(title: str, download: bool, output_dir: Path) -> dict[str, Any]
     arts = extract_art_variants(rendered_html)
     card_data = derive_card_data(infobox_fields, arts)
     related_cards = extract_card_groups(rendered_html, "Related_cards")
+    hero_skins = extract_card_groups(rendered_html, "Hero_skins")
+    page_availability = extract_availability(rendered_html)
+    gallery_images = extract_gallery_images(rendered_html)
     generated_cards = extract_generated_card_pools(rendered_html)
     sounds = extract_sounds(rendered_html)
     external_links = extract_external_links(rendered_html)
     patches = extract_patch_changes(rendered_html)
+    if page_availability:
+        availability = card_data.setdefault("availability", {})
+        notes = [entry.text for entry in page_availability]
+        availability["notes"] = notes
+        card_data["availability_notes"] = notes
 
     if download:
         art_dir = output_dir / "arts"
@@ -847,6 +1004,9 @@ def build_result(title: str, download: bool, output_dir: Path) -> dict[str, Any]
         "infobox_fields": [asdict(field) for field in infobox_fields],
         "arts": [asdict(art) for art in arts],
         "related_cards": [asdict(group) for group in related_cards],
+        "hero_skins": [asdict(group) for group in hero_skins],
+        "page_availability": [asdict(entry) for entry in page_availability],
+        "gallery_images": [asdict(image) for image in gallery_images],
         "generated_cards": generated_cards,
         "sounds": [asdict(group) for group in sounds],
         "external_links": [asdict(link) for link in external_links],
