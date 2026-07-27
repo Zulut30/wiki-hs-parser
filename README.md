@@ -8,7 +8,8 @@ It extracts:
 - all art variants shown in the infobox
 - direct image URLs for each art variant
 - downloaded image files for each art variant
-- related cards grouped by section
+- related cards grouped by section, including companion-card sections such as
+  modules, alternate art pieces, quest rewards, and additional hero powers
 - Battlegrounds hero skins grouped by section
 - full-art/gallery image files from the `Gallery` section
 - generated card pools and the cards returned by each `Special:RunQuery/WikiCardPool` page

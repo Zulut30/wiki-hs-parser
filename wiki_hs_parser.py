@@ -637,6 +637,61 @@ def extract_card_groups(rendered_html: str, section_id: str) -> list[CardGroup]:
     return groups
 
 
+NON_COMPANION_CARD_SECTION_IDS = {
+    "Gallery",
+    "Hero_skins",
+    "Skins",
+}
+
+
+def extract_related_card_groups(rendered_html: str) -> list[CardGroup]:
+    """Collect inline companion cards from every relevant card-page section.
+
+    Wiki pages do not consistently place tokens, quest rewards, modules, hero
+    powers, and alternate playable forms below ``Related cards``. This walks
+    every top-level section containing the wiki's ``list-cards`` markup while
+    excluding cosmetic/media-only sections and deduplicating repeated cards.
+    """
+    tree = html.fromstring(rendered_html)
+    groups: list[CardGroup] = []
+    seen: set[str] = set()
+
+    for section in tree.xpath('//h2[.//*[@id]]'):
+        headline = section.xpath('.//*[@id][1]')
+        section_id = str(headline[0].get("id") or "") if headline else ""
+        if not section_id or section_id in NON_COMPANION_CARD_SECTION_IDS:
+            continue
+
+        current_heading = extract_text(section) or section_id.replace("_", " ")
+        node = section.getnext()
+        while node is not None and node.tag != "h2":
+            if isinstance(node.tag, str) and node.tag in {"h3", "h4"}:
+                current_heading = extract_text(node) or current_heading
+                node = node.getnext()
+                continue
+
+            has_list_cards = (
+                isinstance(node.tag, str)
+                and (
+                    " list-cards " in f" {node.get('class') or ''} "
+                    or bool(node.xpath('.//*[contains(concat(" ", normalize-space(@class), " "), " list-cards ")]'))
+                )
+            )
+            if has_list_cards:
+                cards: list[CardLink] = []
+                for card in extract_card_divs(node):
+                    key = card.card_code
+                    if not key or key in seen:
+                        continue
+                    seen.add(key)
+                    cards.append(card)
+                if cards:
+                    groups.append(CardGroup(heading=current_heading, cards=cards))
+            node = node.getnext()
+
+    return groups
+
+
 def extract_availability(rendered_html: str) -> list[AvailabilityEntry]:
     tree = html.fromstring(rendered_html)
     entries: list[AvailabilityEntry] = []
@@ -977,7 +1032,7 @@ def build_result(title: str, download: bool, output_dir: Path) -> dict[str, Any]
     infobox_fields = extract_infobox_fields(rendered_html)
     arts = extract_art_variants(rendered_html)
     card_data = derive_card_data(infobox_fields, arts)
-    related_cards = extract_card_groups(rendered_html, "Related_cards")
+    related_cards = extract_related_card_groups(rendered_html)
     hero_skins = extract_card_groups(rendered_html, "Hero_skins")
     page_availability = extract_availability(rendered_html)
     gallery_images = extract_gallery_images(rendered_html)
